@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <meta name="mobile-web-app-capable" content="yes"/>
+  <title>Simulador VR — Bomba Centrífuga | SENAI</title>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@300;400;600;700;800;900&family=Barlow:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+
+    :root{
+      --verm:   #C8102E;
+      --verm2:  #9e0c24;
+      --azul:   #0A1628;
+      --bg:     #060d18;
+      --panel:  rgba(6,13,24,0.94);
+      --glass:  rgba(255,255,255,0.04);
+      --border: rgba(200,16,46,0.25);
+      --text:   #E8EDF5;
+      --muted:  #5a6a80;
+      --dim:    #8a9ab8;
+      --success:#10d98a;
+      --warn:   #f5a623;
+      --danger: #ff4060;
+      --accent: #00C8FF;
+      --ff:     'Barlow',sans-serif;
+      --ffc:    'Barlow Condensed',sans-serif;
+    }
+
+    html,body{width:100%;height:100%;background:var(--bg);color:var(--text);font-family:var(--ff);overflow:hidden}
+    #renderCanvas{width:100%;height:100%;display:block;touch-action:none}
+
+    /* ── LOADING ── */
+    #loading-overlay{
+      position:fixed;inset:0;z-index:400;background:var(--bg);
+      display:flex;flex-direction:column;align-items:center;justify-content:center;
+      transition:opacity .7s ease;
+    }
+    .ld-logo-wrap{margin-bottom:32px;display:flex;align-items:center;gap:20px}
+    .ld-logo-box{background:#fff;padding:10px 18px;border-radius:4px}
+    .ld-logo-box img{height:48px;display:block}
+    .ld-divider{width:1px;height:60px;background:rgba(255,255,255,.12)}
+    .ld-brand{display:flex;flex-direction:column}
+    .ld-brand-unit{font-family:var(--ffc);font-size:11px;font-weight:400;letter-spacing:3px;text-transform:uppercase;color:var(--muted)}
+    .ld-brand-name{font-family:var(--ffc);font-size:20px;font-weight:700;color:#fff;letter-spacing:1px}
+    .ld-stripe{width:480px;height:3px;background:linear-gradient(90deg,var(--verm),#ff3355);margin-bottom:28px}
+    .ld-title{font-family:var(--ffc);font-size:52px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:#fff;margin-bottom:6px;text-align:center}
+    .ld-sub{font-family:var(--ffc);font-size:16px;font-weight:300;letter-spacing:6px;text-transform:uppercase;color:var(--muted);margin-bottom:36px}
+    .ld-bar-wrap{width:480px;height:2px;background:rgba(255,255,255,.06);border-radius:2px;overflow:hidden;margin-bottom:14px}
+    #loading-bar{height:100%;background:linear-gradient(90deg,var(--verm),#ff3355);width:0%;transition:width .35s ease}
+    #loading-status{font-family:var(--ffc);font-size:12px;letter-spacing:3px;text-transform:uppercase;color:var(--muted)}
+
+    /* ── HUD ── */
+    #hud{position:fixed;inset:0;pointer-events:none;display:flex;flex-direction:column;justify-content:space-between;z-index:10}
+
+    /* Header */
+    #top-bar{display:flex;align-items:stretch;justify-content:space-between;pointer-events:auto}
+
+    #senai-block{
+      display:flex;align-items:stretch;background:var(--verm);
+      clip-path:polygon(0 0,100% 0,94% 100%,0 100%);
+      padding-right:40px;
+    }
+    #senai-logo-box{background:#fff;padding:10px 18px;display:flex;align-items:center;justify-content:center}
+    #senai-logo-box img{height:44px;display:block}
+    .senai-info{display:flex;flex-direction:column;justify-content:center;padding:0 18px}
+    .senai-unit{font-family:var(--ffc);font-size:11px;font-weight:400;letter-spacing:2px;text-transform:uppercase;color:rgba(255,255,255,.7)}
+    .senai-title{font-family:var(--ffc);font-size:20px;font-weight:800;color:#fff;letter-spacing:.5px}
+
+    #status-row{display:flex;gap:8px;align-items:center;padding:12px 18px}
+    .pill{font-family:var(--ffc);font-size:11px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;padding:5px 14px;border-radius:2px;border:1px solid rgba(255,255,255,.10);background:rgba(0,0,0,.4);color:var(--muted)}
+    .pill.ok{border-color:rgba(16,217,138,.35);color:var(--success)}
+
+    /* XR warning */
+    #xr-status{
+      display:none;position:fixed;top:76px;left:50%;transform:translateX(-50%);
+      background:rgba(245,166,35,.10);border:1px solid rgba(245,166,35,.4);
+      color:var(--warn);padding:10px 24px;border-radius:3px;
+      font-family:var(--ffc);font-size:13px;letter-spacing:1px;z-index:50;
+    }
+
+    /* Bottom */
+    #bottom-bar{
+      display:flex;flex-direction:column;gap:10px;padding:18px 20px;pointer-events:auto;
+      background:linear-gradient(0deg,rgba(6,13,24,.98) 0%,transparent 100%);
+    }
+
+    #progress-row{display:flex;align-items:center;gap:12px}
+    .prog-label{font-family:var(--ffc);font-size:11px;font-weight:600;letter-spacing:3px;text-transform:uppercase;color:var(--verm)}
+    .prog-track{flex:1;height:3px;background:rgba(255,255,255,.07);border-radius:2px;overflow:hidden;max-width:300px}
+    #progress-bar{height:100%;background:linear-gradient(90deg,var(--verm),#ff3355);width:0%;transition:width .5s ease}
+    #progress-pct{font-family:var(--ffc);font-size:15px;font-weight:700;color:var(--text);min-width:44px}
+
+    #mode-row{display:flex;gap:8px;flex-wrap:wrap}
+    .mode-btn{
+      font-family:var(--ffc);font-size:22px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;
+      padding:14px 28px;border:1px solid rgba(255,255,255,.08);border-radius:2px;
+      background:rgba(255,255,255,.04);backdrop-filter:blur(12px);color:var(--muted);
+      cursor:pointer;transition:all .15s ease;
+    }
+    .mode-btn:hover{border-color:var(--verm);color:#fff;background:rgba(200,16,46,.12)}
+    .mode-btn.active{background:var(--verm);border-color:var(--verm);color:#fff}
+
+    /* Toolbar */
+    #toolbar{position:fixed;bottom:90px;right:18px;display:flex;flex-direction:column;gap:8px;z-index:50;pointer-events:auto}
+    .tool-btn{
+      width:46px;height:46px;border-radius:50%;
+      background:rgba(6,13,24,.92);backdrop-filter:blur(12px);
+      border:1px solid rgba(255,255,255,.08);color:var(--text);font-size:19px;
+      cursor:pointer;display:flex;align-items:center;justify-content:center;
+      transition:all .15s;pointer-events:auto;
+    }
+    .tool-btn:hover{border-color:var(--verm);background:rgba(200,16,46,.15)}
+
+    /* Painel de avaliação */
+    #avaliacao-panel{
+      position:fixed;top:80px;left:20px;width:200px;
+      background:var(--panel);backdrop-filter:blur(16px);
+      border:1px solid rgba(245,166,35,.2);border-left:3px solid var(--warn);
+      border-radius:0 4px 4px 0;padding:16px 18px;z-index:50;
+    }
+    #avaliacao-panel.hidden{display:none}
+    .av-label{font-family:var(--ffc);font-size:10px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:var(--warn);margin-bottom:12px}
+    .av-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+    .av-key{font-family:var(--ffc);font-size:11px;letter-spacing:1px;text-transform:uppercase;color:var(--muted)}
+    .av-val{font-family:'Courier New',monospace;font-size:22px;font-weight:700;color:var(--text)}
+    #timer-display{color:var(--warn)}
+    #score-display{color:var(--accent)}
+    #erros-display{color:var(--danger)}
+
+    /* Painel guiado */
+    #guiado-panel{
+      position:fixed;top:80px;right:80px;width:260px;
+      background:var(--panel);backdrop-filter:blur(16px);
+      border:1px solid rgba(0,200,255,.15);border-right:3px solid var(--accent);
+      border-radius:4px 0 0 4px;padding:16px 18px;z-index:50;
+    }
+    #guiado-panel.hidden{display:none}
+    #step-label{font-family:var(--ffc);font-size:10px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:var(--accent);margin-bottom:8px}
+    #step-name{font-family:var(--ffc);font-size:20px;font-weight:800;color:var(--text);margin-bottom:6px;line-height:1.2}
+    #step-desc{font-size:12px;color:var(--dim);line-height:1.6;margin-bottom:14px}
+    #btn-next-step{
+      width:100%;padding:10px;background:var(--accent);border:none;border-radius:2px;
+      color:#0a1628;font-family:var(--ffc);font-size:13px;font-weight:800;
+      letter-spacing:2px;text-transform:uppercase;cursor:pointer;transition:filter .15s;
+    }
+    #btn-next-step:hover{filter:brightness(1.15)}
+
+    /* ── PAINEL DE INFORMAÇÕES DA PEÇA — redesenhado ── */
+    #info-panel{
+      position:fixed;left:18px;bottom:90px;
+      width:340px;max-height:75vh;overflow-y:auto;
+      background:var(--panel);backdrop-filter:blur(20px);
+      border:1px solid rgba(255,255,255,.07);
+      border-radius:4px;overflow:hidden;z-index:50;
+    }
+    #info-panel.hidden{display:none}
+
+    #info-sidebar{
+      position:absolute;left:0;top:0;bottom:0;width:3px;
+      background:var(--accent);transition:background .3s;
+    }
+
+    #info-header{padding:16px 20px 14px 20px;border-bottom:1px solid rgba(255,255,255,.06)}
+    #info-badge{
+      display:inline-block;font-family:var(--ffc);font-size:13px;font-weight:700;
+      letter-spacing:2px;text-transform:uppercase;padding:5px 14px;border-radius:2px;
+      border:1px solid;margin-bottom:12px;
+    }
+    #info-nome{font-family:var(--ffc);font-size:28px;font-weight:800;line-height:1.2;margin-bottom:4px}
+    #info-en{font-family:var(--ffc);font-size:14px;font-weight:400;letter-spacing:1px;color:var(--muted);text-transform:uppercase}
+
+    #info-close{
+      position:absolute;top:12px;right:14px;background:none;border:none;
+      color:var(--muted);font-size:18px;cursor:pointer;line-height:1;
+      transition:color .15s;
+    }
+    #info-close:hover{color:#fff}
+
+    #info-body{padding:16px 20px}
+
+    .info-section{margin-bottom:14px}
+    .info-section-title{
+      font-family:var(--ffc);font-size:11px;font-weight:700;letter-spacing:3px;
+      text-transform:uppercase;color:var(--muted);margin-bottom:10px;
+      padding-bottom:6px;border-bottom:1px solid rgba(255,255,255,.05);
+    }
+
+    .info-row{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:7px;gap:12px}
+    .info-key{font-family:var(--ffc);font-size:13px;letter-spacing:.5px;text-transform:uppercase;color:var(--muted);white-space:nowrap;flex-shrink:0}
+    .info-val{font-size:14px;color:var(--text);text-align:right;line-height:1.4}
+
+    .info-desc-text{font-size:14px;color:var(--dim);line-height:1.6}
+
+    .info-torque-highlight{
+      display:flex;align-items:center;justify-content:space-between;
+      background:rgba(200,16,46,.08);border:1px solid rgba(200,16,46,.2);
+      border-radius:3px;padding:8px 12px;margin-top:8px;
+    }
+    .torque-label{font-family:var(--ffc);font-size:13px;letter-spacing:2px;text-transform:uppercase;color:var(--verm)}
+    .torque-val{font-family:'Courier New',monospace;font-size:24px;font-weight:700;color:#fff}
+
+    .info-warning{
+      display:flex;align-items:center;gap:8px;
+      background:rgba(245,166,35,.07);border:1px solid rgba(245,166,35,.2);
+      border-radius:3px;padding:10px 14px;margin-top:6px;
+      font-size:13px;color:var(--warn);line-height:1.4;
+    }
+
+    /* Toast */
+    #toast{
+      position:fixed;top:88px;left:50%;transform:translateX(-50%) translateY(-8px);
+      background:rgba(6,13,24,.96);border:1px solid rgba(255,255,255,.10);
+      color:var(--text);padding:10px 22px;border-radius:3px;
+      font-family:var(--ffc);font-size:13px;letter-spacing:.5px;
+      z-index:200;opacity:0;transition:all .25s ease;pointer-events:none;white-space:nowrap;
+    }
+    #toast.visible{opacity:1;transform:translateX(-50%) translateY(0)}
+    #toast.toast-success{border-color:rgba(16,217,138,.4);color:var(--success)}
+    #toast.toast-error{border-color:rgba(255,64,96,.4);color:var(--danger)}
+    #toast.toast-hint{border-color:rgba(245,166,35,.4);color:var(--warn)}
+
+    /* Resultado */
+    #result-overlay{
+      position:fixed;inset:0;background:rgba(6,13,24,.92);backdrop-filter:blur(8px);
+      display:flex;flex-direction:column;align-items:center;justify-content:center;
+      z-index:300;gap:16px;font-family:var(--ffc);
+    }
+    #result-overlay.hidden{display:none}
+    .res-stripe{width:120px;height:3px;background:var(--verm);margin-bottom:4px}
+    .res-titulo{font-size:11px;font-weight:700;letter-spacing:5px;text-transform:uppercase;color:var(--verm)}
+    .res-score{font-size:80px;font-weight:900;color:var(--accent);line-height:1}
+    .res-sub{font-size:13px;letter-spacing:2px;color:var(--muted)}
+    .res-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:40px;margin:12px 0}
+    .res-stat{text-align:center}
+    .res-stat-val{font-size:32px;font-weight:800}
+    .res-stat-key{font-size:9px;letter-spacing:3px;text-transform:uppercase;color:var(--muted);margin-top:4px}
+    #btn-resultado-fechar{
+      margin-top:8px;padding:14px 40px;background:var(--verm);border:none;
+      border-radius:2px;color:#fff;font-family:var(--ffc);font-size:14px;
+      font-weight:800;letter-spacing:3px;text-transform:uppercase;cursor:pointer;
+    }
+    #btn-resultado-fechar:hover{background:var(--verm2)}
+
+    @media(max-width:600px){
+      #info-panel,#guiado-panel,#avaliacao-panel{display:none}
+      .ld-title{font-size:32px}
+    }
+  </style>
+</head>
+<body>
+
+<!-- Loading -->
+<div id="loading-overlay">
+  <div class="ld-logo-wrap">
+    <div class="ld-logo-box">
+      <img src="/assets/senai_logo.png" alt="SENAI" onerror="this.style.display='none'"/>
+    </div>
+    <div class="ld-divider"></div>
+    <div class="ld-brand">
+      <span class="ld-brand-unit">Antonio Adolphe Lobbe · São Carlos</span>
+      <span class="ld-brand-name">Mecatrônica Industrial</span>
+    </div>
+  </div>
+  <div class="ld-stripe"></div>
+  <div class="ld-title">Bomba Centrífuga</div>
+  <div class="ld-sub">Simulador de Realidade Virtual</div>
+  <div class="ld-bar-wrap"><div id="loading-bar"></div></div>
+  <div id="loading-status">Iniciando...</div>
+</div>
+
+<!-- Canvas -->
+<canvas id="renderCanvas"></canvas>
+
+<!-- HUD -->
+<div id="hud">
+  <div id="top-bar">
+    <div id="senai-block">
+      <div id="senai-logo-box">
+        <img src="/assets/senai_logo.png" alt="SENAI" onerror="this.style.display='none'"/>
+      </div>
+      <div class="senai-info">
+        <span class="senai-unit">Antonio Adolphe Lobbe</span>
+        <span class="senai-title">Simulador VR · Bomba Centrífuga</span>
+      </div>
+    </div>
+    <div id="status-row">
+      <div class="pill ok" id="pill-status">Carregando...</div>
+      <div class="pill" id="pill-fps">— FPS</div>
+    </div>
+  </div>
+
+  <div id="bottom-bar">
+    <div id="progress-row">
+      <span class="prog-label">Progresso</span>
+      <div class="prog-track"><div id="progress-bar"></div></div>
+      <span id="progress-pct">0%</span>
+    </div>
+    <div id="mode-row">
+      <button class="mode-btn active" data-mode="visualizacao">👁 Visualizar</button>
+      <button class="mode-btn" data-mode="livre">🔧 Livre</button>
+      <button class="mode-btn" data-mode="guiado">📋 Guiado</button>
+      <button class="mode-btn" data-mode="avaliacao">🏆 Avaliação</button>
+    </div>
+  </div>
+</div>
+
+<!-- XR status -->
+<div id="xr-status"></div>
+
+<!-- Toolbar -->
+<div id="toolbar">
+  <button class="tool-btn" id="btn-explode"  title="Vista Explodida">💥</button>
+  <button class="tool-btn" id="btn-assemble" title="Montar">🔩</button>
+  <button class="tool-btn" id="btn-reset"    title="Reiniciar">↺</button>
+  <button class="tool-btn" id="btn-hint"     title="Dica">💡</button>
+  <button class="tool-btn" id="btn-save"     title="Salvar">💾</button>
+  <button class="tool-btn" id="btn-mute"     title="Áudio">🔊</button>
+</div>
+
+<!-- Avaliação -->
+<div id="avaliacao-panel" class="hidden">
+  <div class="av-label">Avaliação</div>
+  <div class="av-row"><span class="av-key">Tempo</span><span class="av-val" id="timer-display">00:00</span></div>
+  <div class="av-row"><span class="av-key">Pontos</span><span class="av-val" id="score-display">0000</span></div>
+  <div class="av-row"><span class="av-key">Erros</span><span class="av-val" id="erros-display">0</span></div>
+</div>
+
+<!-- Guiado -->
+<div id="guiado-panel" class="hidden">
+  <div id="step-label">PASSO 1 / 15</div>
+  <div id="step-name">—</div>
+  <div id="step-desc">Selecione e posicione a peça indicada.</div>
+  <button id="btn-next-step">▶ Próximo Passo</button>
+</div>
+
+<!-- Info da peça — painel técnico completo -->
+<div id="info-panel" class="hidden">
+  <div id="info-sidebar"></div>
+  <button id="info-close">✕</button>
+
+  <div id="info-header">
+    <div id="info-badge">Grupo</div>
+    <div id="info-nome">—</div>
+    <div id="info-en">—</div>
+  </div>
+
+  <div id="info-body">
+
+    <div class="info-section">
+      <div class="info-section-title">Descrição</div>
+      <div class="info-desc-text" id="info-desc">—</div>
+    </div>
+
+    <div class="info-section">
+      <div class="info-section-title">Função</div>
+      <div class="info-desc-text" id="info-funcao">—</div>
+    </div>
+
+    <div class="info-section">
+      <div class="info-section-title">Dados Técnicos</div>
+      <div class="info-row">
+        <span class="info-key">Material</span>
+        <span class="info-val" id="info-material">—</span>
+      </div>
+      <div class="info-row">
+        <span class="info-key">Norma</span>
+        <span class="info-val" id="info-norma">—</span>
+      </div>
+      <div class="info-row">
+        <span class="info-key">Ferramenta</span>
+        <span class="info-val" id="info-ferramenta">—</span>
+      </div>
+      <div class="info-row" id="info-torque-row">
+        <div class="info-torque-highlight" style="width:100%">
+          <span class="torque-label">Torque de Aperto</span>
+          <span class="torque-val" id="info-torque">—</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="info-section">
+      <div class="info-section-title">Manutenção</div>
+      <div class="info-warning">
+        ⏱ <span id="info-intervalo">—</span>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Toast -->
+<div id="toast"></div>
+
+<!-- Resultado -->
+<div id="result-overlay" class="hidden">
+  <div class="res-stripe"></div>
+  <div class="res-titulo">Montagem Concluída!</div>
+  <div class="res-score" id="result-score">0</div>
+  <div class="res-sub">pontos totais</div>
+  <div class="res-stats">
+    <div class="res-stat">
+      <div class="res-stat-val" style="color:var(--warn)" id="result-time">00:00</div>
+      <div class="res-stat-key">Tempo</div>
+    </div>
+    <div class="res-stat">
+      <div class="res-stat-val" style="color:var(--success)">15</div>
+      <div class="res-stat-key">Peças</div>
+    </div>
+    <div class="res-stat">
+      <div class="res-stat-val" style="color:var(--danger)" id="result-erros">0</div>
+      <div class="res-stat-key">Erros</div>
+    </div>
+  </div>
+  <button id="btn-resultado-fechar">Continuar</button>
+</div>
+
+<script type="module" src="/src/main.js"></script>
+<script>
+let _eng
+const _t = setInterval(() => {
+  if (!window._app?.sceneManager?.engine) return
+  _eng = window._app.sceneManager.engine
+  document.getElementById('pill-status').textContent = 'Ativo ✓'
+  document.getElementById('pill-status').className = 'pill ok'
+  clearInterval(_t)
+  setInterval(() => {
+    document.getElementById('pill-fps').textContent = Math.round(_eng.getFps()) + ' FPS'
+  }, 1000)
+}, 600)
+</script>
+</body>
+</html>
