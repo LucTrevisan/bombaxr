@@ -20,7 +20,7 @@ export class PumpModel {
   async load() {
     // Carregar metadados
     try {
-      const res  = await fetch('/assets/componentes.json')
+      const res  = await fetch(import.meta.env.BASE_URL + 'assets/componentes.json')
       this.meta  = await res.json()
     } catch (e) { console.warn('componentes.json não carregado') }
 
@@ -39,7 +39,7 @@ export class PumpModel {
     // Tentar carregar GLB
     try {
       const result = await BABYLON.SceneLoader.ImportMeshAsync(
-        '', '/assets/', 'bomba.glb', this.scene
+        '', import.meta.env.BASE_URL + 'assets/', 'bomba.glb', this.scene
       )
       this._parseGLB(result.meshes)
       console.log('✅ GLB carregado. Peças:', Object.keys(this.parts).length)

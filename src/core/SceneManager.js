@@ -89,7 +89,7 @@ export class SceneManager {
       }, 12000)
 
       const tex = new BABYLON.Texture(
-        '/assets/ambiente360.jpg',
+        import.meta.env.BASE_URL + 'assets/ambiente360.jpg',
         this.scene,
         false,   // noMipmap
         false,   // invertY = false para equiretangular
