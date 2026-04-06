@@ -35,9 +35,15 @@ export class SceneManager {
       'cam', -Math.PI / 2, Math.PI / 4, 4.0,
       new BABYLON.Vector3(0, 0.5, 0), this.scene
     )
-    this.camera.lowerRadiusLimit = 0.5
-    this.camera.upperRadiusLimit = 12
-    this.camera.wheelPrecision   = 60
+    this.camera.lowerRadiusLimit      = 0.5
+    this.camera.upperRadiusLimit      = 12
+    this.camera.wheelPrecision        = 60
+    this.camera.pinchDeltaPercentage  = 0.001
+    this.camera.angularSensibilityX   = 500
+    this.camera.angularSensibilityY   = 500
+    this.camera.panningSensibility    = 100
+    this.camera.multiTouchPanning     = true
+    this.camera.multiTouchPanAndZoom  = true
     this.camera.attachControl(this.canvas, true)
 
     // ── Ambiente 360° — método validado ──────────────────────────────────────

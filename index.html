@@ -243,9 +243,103 @@
     }
     #btn-resultado-fechar:hover{background:var(--verm2)}
 
-    @media(max-width:600px){
-      #info-panel,#guiado-panel,#avaliacao-panel{display:none}
-      .ld-title{font-size:32px}
+    /* ══════════════════════════════════════════
+       MOBILE — layout completo para celular/tablet
+       ══════════════════════════════════════════ */
+    @media(max-width:768px){
+
+      /* Loading — compacto */
+      .ld-logo-wrap{flex-direction:column;gap:12px;margin-bottom:20px}
+      .ld-divider{width:60px;height:1px}
+      .ld-stripe{width:90vw}
+      .ld-title{font-size:32px;letter-spacing:1px}
+      .ld-sub{font-size:12px;letter-spacing:3px;margin-bottom:24px}
+      .ld-bar-wrap{width:80vw}
+
+      /* Header SENAI — versão compacta */
+      #senai-block{clip-path:none;padding-right:16px}
+      #senai-logo-box img{height:32px}
+      .senai-info{padding:0 10px}
+      .senai-unit{font-size:9px;letter-spacing:1px}
+      .senai-title{font-size:14px}
+      #status-row{padding:8px 10px;gap:6px}
+      .pill{font-size:9px;padding:4px 8px}
+
+      /* Bottom bar — compacto */
+      #bottom-bar{padding:10px 12px;gap:6px}
+      #progress-row{gap:8px}
+      .prog-label{font-size:9px}
+      #progress-pct{font-size:12px}
+
+      /* Botões de modo — scroll horizontal */
+      #mode-row{
+        flex-wrap:nowrap;overflow-x:auto;
+        -webkit-overflow-scrolling:touch;
+        gap:6px;padding-bottom:4px;
+        scrollbar-width:none;
+      }
+      #mode-row::-webkit-scrollbar{display:none}
+      .mode-btn{
+        font-size:14px;padding:10px 16px;
+        white-space:nowrap;flex-shrink:0;
+      }
+
+      /* Toolbar — linha horizontal na parte superior direita */
+      #toolbar{
+        bottom:auto;top:70px;right:8px;
+        flex-direction:column;gap:6px;
+      }
+      .tool-btn{width:42px;height:42px;font-size:17px}
+
+      /* Painel de info — tela inteira em mobile */
+      #info-panel{
+        left:0!important;right:0!important;top:auto!important;
+        bottom:0!important;width:100%!important;
+        max-height:60vh;border-radius:12px 12px 0 0;
+        border-left:none;border-right:none;border-bottom:none;
+        border-top:3px solid var(--accent);
+      }
+      #info-sidebar{display:none}
+      #info-nome{font-size:22px}
+      #info-close{top:14px;right:16px;font-size:22px;width:32px;height:32px}
+
+      /* Avaliação e guiado — tela inteira */
+      #avaliacao-panel{
+        left:0;right:0;top:auto;bottom:130px;
+        width:100%;border-radius:0;border-left:none;border-right:none;
+        border-top:2px solid var(--warn);
+      }
+      #guiado-panel{
+        left:0;right:0;top:auto;bottom:130px;
+        width:100%;border-radius:0;border-left:none;border-right:none;
+        border-top:2px solid var(--accent);
+      }
+
+      /* XR status — menor */
+      #xr-status{font-size:11px;padding:8px 14px;top:68px}
+
+      /* Resultado — ajustado */
+      .res-score{font-size:60px}
+      .res-stats{gap:20px}
+      .res-stat-val{font-size:24px}
+
+      /* Toast — menor */
+      #toast{font-size:12px;padding:8px 16px;max-width:90vw;white-space:normal;text-align:center}
+    }
+
+    /* Tablet — ajustes intermediários */
+    @media(min-width:769px) and (max-width:1024px){
+      .mode-btn{font-size:16px;padding:11px 18px}
+      #info-panel{width:300px}
+      .tool-btn{width:44px;height:44px}
+    }
+
+    /* Touch — área de toque maior */
+    @media(hover:none) and (pointer:coarse){
+      .tool-btn{min-width:44px;min-height:44px}
+      .mode-btn{min-height:44px}
+      #btn-next-step{min-height:52px}
+      #info-close{min-width:44px;min-height:44px;display:flex;align-items:center;justify-content:center}
     }
   </style>
 </head>
