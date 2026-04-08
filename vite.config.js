@@ -1,9 +1,6 @@
 import { defineConfig } from 'vite'
 
-export default defineConfig(({ command, mode }) => {
-  // Detectar ambiente pelo NODE_ENV ou variável DEPLOY_TARGET
-  // GitHub Pages: base = '/bomba-vr/'
-  // Cloudflare Pages: base = '/'
+export default defineConfig(({ command }) => {
   const isCloudflare = process.env.DEPLOY_TARGET === 'cloudflare'
   const base = command === 'build'
     ? (isCloudflare ? '/' : '/bomba-vr/')
@@ -22,13 +19,6 @@ export default defineConfig(({ command, mode }) => {
     build: {
       target:  'esnext',
       outDir:  'dist',
-      rollupOptions: {
-        output: {
-          manualChunks: {
-            babylon: ['@babylonjs/core', '@babylonjs/loaders', '@babylonjs/gui']
-          }
-        }
-      }
     }
   }
 })
