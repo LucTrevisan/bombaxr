@@ -74,20 +74,20 @@ export class SceneManager {
 
   async _setup360() {
     const base    = import.meta.env.BASE_URL
-    const hdrFile = base + 'assets/ambiente360.hdr'
+    const envFile = base + 'assets/ambiente360.env'
     const jpgFile = base + 'assets/ambiente360.jpg'
 
-    // Tentar HDRI primeiro (alta qualidade + reflexos PBR)
+    // Tentar .env primeiro (formato nativo Babylon — máxima qualidade)
+    // Converter em: https://www.babylonjs.com/tools/ibl/
     // Se não existir, usar JPG como fallback
-    const fileToLoad = await this._fileExists(hdrFile) ? hdrFile : jpgFile
-    const isHDR      = fileToLoad.endsWith('.hdr')
+    const hasEnv = await this._fileExists(envFile)
 
-    console.log(`🌐 Carregando ambiente: ${isHDR ? 'HDRI alta qualidade' : 'JPG'}`)
-
-    if (isHDR) {
-      await this._setup360HDR(fileToLoad)
+    if (hasEnv) {
+      console.log('🌐 Carregando ambiente .env — alta qualidade')
+      await this._setup360ENV(envFile)
     } else {
-      await this._setup360JPG(fileToLoad)
+      console.log('🌐 Carregando ambiente JPG')
+      await this._setup360JPG(jpgFile)
     }
   }
 
@@ -98,49 +98,39 @@ export class SceneManager {
     } catch { return false }
   }
 
-  async _setup360HDR(url) {
+  async _setup360ENV(url) {
     return new Promise((resolve) => {
       try {
-        // HDRCubeTexture para arquivos .hdr equiretangulares do Poly Haven
-        // size=512: qualidade boa sem impacto de performance no Quest
-        const hdrTex = new BABYLON.HDRCubeTexture(
-          url,
-          this.scene,
-          512,        // tamanho do cubemap gerado
-          false,      // noMipmap
-          true,       // generateHarmonics
-          false,      // gammaSpace
-          false,      // reserved
-          () => {
-            // Usar como environment para reflexos PBR
-            this.scene.environmentTexture   = hdrTex
-            this.scene.environmentIntensity = 0.8
+        // CubeTexture .env — formato nativo Babylon, máxima qualidade
+        const envTex = BABYLON.CubeTexture.CreateFromPrefilteredData(url, this.scene)
 
-            // Criar skybox visível a partir do HDR
-            const skybox = this.scene.createDefaultSkybox(
-              hdrTex,
-              true,   // pbr
-              1000,   // scale
-              0.0     // blur
-            )
-            if (skybox) {
-              skybox.isPickable       = false
-              skybox.renderingGroupId = 0
-              this._sky = skybox
-            }
+        envTex.onLoadObservable?.add(() => {
+          this.scene.environmentTexture   = envTex
+          this.scene.environmentIntensity = 0.8
 
-            console.log('✅ HDRI carregado — ambiente de alta qualidade ativo')
-            resolve()
-          },
-          (err) => {
-            console.warn('⚠️ HDRI falhou:', err, '— usando JPG')
+          const skybox = this.scene.createDefaultSkybox(envTex, true, 1000, 0.0)
+          if (skybox) {
+            skybox.isPickable       = false
+            skybox.renderingGroupId = 0
+            this._sky = skybox
+          }
+
+          console.log('✅ ENV carregado — reflexos PBR de alta qualidade')
+          resolve()
+        })
+
+        // Fallback com timeout
+        setTimeout(() => {
+          if (!this.scene.environmentTexture) {
+            console.warn('⚠️ ENV timeout — usando JPG')
             this._setup360JPG(
               import.meta.env.BASE_URL + 'assets/ambiente360.jpg'
             ).then(resolve)
           }
-        )
+        }, 15000)
+
       } catch (e) {
-        console.warn('⚠️ HDRCubeTexture não suportado:', e.message)
+        console.warn('⚠️ ENV falhou:', e.message, '— usando JPG')
         this._setup360JPG(
           import.meta.env.BASE_URL + 'assets/ambiente360.jpg'
         ).then(resolve)
@@ -245,5 +235,39 @@ export class SceneManager {
   setEnvRotation(deg) {
     const tex = this._skyMat?.diffuseTexture
     if (tex) tex.uOffset = deg / 360
+  }
+
+  // ── Trocar foto do ambiente 360° — usado pelo TourManager ─────────────
+  async trocarAmbiente360(url) {
+    return new Promise((resolve) => {
+      const mat = this._skyMat
+      if (!mat) { resolve(); return }
+
+      const timeout = setTimeout(resolve, 8000)
+
+      const tex = new BABYLON.Texture(
+        url, this.scene, false, false,
+        BABYLON.Texture.TRILINEAR_SAMPLINGMODE,
+        () => {
+          clearTimeout(timeout)
+          tex.uScale = 1
+          tex.vScale = 1
+          tex.wrapU  = BABYLON.Texture.WRAP_ADDRESSMODE
+          tex.wrapV  = BABYLON.Texture.CLAMP_ADDRESSMODE
+
+          mat.diffuseTexture?.dispose()
+          mat.emissiveTexture?.dispose()
+
+          mat.diffuseTexture  = tex
+          mat.emissiveTexture = tex
+          mat.emissiveColor   = BABYLON.Color3.White()
+
+          if (this._sky) this._sky.setEnabled(true)
+
+          resolve()
+        },
+        () => { clearTimeout(timeout); resolve() }
+      )
+    })
   }
 }

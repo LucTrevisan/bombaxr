@@ -4,6 +4,8 @@
  */
 
 import { SceneManager }        from './core/SceneManager.js'
+import { TourManager }         from './core/TourManager.js'
+import { LabEnvironment }      from './core/LabEnvironment.js'
 import { PumpModel }           from './core/PumpModel.js'
 import { AssemblyManager }     from './assembly/AssemblyManager.js'
 import { InteractionManager }  from './interaction/InteractionManager.js'
@@ -155,7 +157,16 @@ async function init() {
       if (ol) { ol.style.opacity='0'; setTimeout(() => ol.remove(), 600) }
     }, 400)
 
-    window._app = { sceneManager, pumpModel, assembly, interaction, xr, hud, vrUI, anim, audio }
+    // ── Fase 1: Tour de pontos 360° ─────────────────────────────────────
+    const tour = new TourManager(sceneManager.scene, sceneManager)
+    const tourAtivo = await tour.init()
+    if (tourAtivo) _criarDotsTour(tour)
+
+    // ── Fase 2: Laboratório 3D navegável ─────────────────────────────────
+    const lab = new LabEnvironment(sceneManager.scene, sceneManager)
+    await lab.init()
+
+    window._app = { sceneManager, pumpModel, assembly, interaction, xr, hud, vrUI, anim, audio, tour, lab }
     console.log('Simulador VR v2.0 - SENAI Antonio Adolphe Lobbe')
     console.log('Pecas:', Object.keys(pumpModel.parts).length)
 
@@ -163,6 +174,18 @@ async function init() {
     console.error('Erro:', err)
     setStatus('Erro: ' + err.message)
   }
+}
+
+function _criarDotsTour(tour) {
+  const container = document.getElementById('tour-dots')
+  if (!container) return
+  container.innerHTML = ''
+  tour._pontos.forEach((_, i) => {
+    const dot = document.createElement('div')
+    dot.className = 'tour-dot' + (i === 0 ? ' ativo' : '')
+    dot.addEventListener('click', () => tour.irParaIndice(i))
+    container.appendChild(dot)
+  })
 }
 
 function _extraToolbar(anim) {
