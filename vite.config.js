@@ -8,6 +8,7 @@ export default defineConfig(({ command }) => {
 
   return {
     base,
+    plugins: [],
     server: {
       host:  '0.0.0.0',
       port:  5173,
