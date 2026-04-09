@@ -34,7 +34,7 @@ export class PumpModel {
     // X:-90° converte Z-up → Y-up (fica horizontal)
     // Escala 3x para proporção correta no ambiente 360°
     this.rootNode.rotation = new BABYLON.Vector3(0, 0, 0)
-    this.rootNode.scaling  = new BABYLON.Vector3(2, 2, 2)
+    this.rootNode.scaling  = new BABYLON.Vector3(1, 1, 1)  // ajustado por _autoScale após carregar
 
     // Tentar carregar GLB
     try {
@@ -46,6 +46,8 @@ export class PumpModel {
       if (this._unmapped.length) {
         console.warn('⚠️ Não mapeados:', this._unmapped.length, 'meshes')
       }
+      // Escala automática — ajusta para ~0.8m de comprimento (escala realista)
+      this._autoScale(result.meshes, 0.8)
     } catch (e) {
       console.warn('⚠️ bomba.glb não encontrado — modelo procedural ativo')
       this._buildProcedural()
@@ -309,6 +311,44 @@ export class PumpModel {
     })
 
     console.log('✅ Cores aplicadas: carcaça verde, motor azul')
+  }
+
+  // Escala automática — calcula bounding box e ajusta para tamanho alvo em metros
+  _autoScale(meshes, targetSizeMeters = 0.8) {
+    // Calcular bounding box de todos os meshes
+    let min = new BABYLON.Vector3(Infinity, Infinity, Infinity)
+    let max = new BABYLON.Vector3(-Infinity, -Infinity, -Infinity)
+
+    meshes.forEach(m => {
+      if (!m.getBoundingInfo) return
+      try {
+        const bi = m.getBoundingInfo()
+        const mn = bi.boundingBox.minimumWorld
+        const mx = bi.boundingBox.maximumWorld
+        min = BABYLON.Vector3.Minimize(min, mn)
+        max = BABYLON.Vector3.Maximize(max, mx)
+      } catch {}
+    })
+
+    if (!isFinite(min.x)) {
+      // Fallback se bounding box falhar
+      this.rootNode.scaling.setAll(2.0)
+      console.warn('⚠️ Bounding box falhou — usando escala padrão 2.0')
+      return
+    }
+
+    const size    = max.subtract(min)
+    const maxDim  = Math.max(size.x, size.y, size.z)
+
+    if (maxDim < 0.0001) {
+      this.rootNode.scaling.setAll(2.0)
+      return
+    }
+
+    const scale = targetSizeMeters / maxDim
+    this.rootNode.scaling.setAll(scale)
+
+    console.log(`✅ Escala automática: ${scale.toFixed(3)}x (modelo: ${maxDim.toFixed(3)}m → ${targetSizeMeters}m)`)
   }
 
   _storeOrigins() {  // também chamado pelo AssemblyManager como fallback

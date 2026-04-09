@@ -56,6 +56,9 @@ export class SceneManager {
     this.camera.multiTouchPanAndZoom  = true
     this.camera.attachControl(this.canvas, true)
 
+    // ── Chão industrial — sempre visível como base ───────────────────────────
+    this._setupGround()
+
     // ── Ambiente 360° — método validado ──────────────────────────────────────
     await this._setup360()
 
@@ -70,6 +73,37 @@ export class SceneManager {
     // ── Render loop ──────────────────────────────────────────────────────────
     this.engine.runRenderLoop(() => this.scene.render())
     window.addEventListener('resize', () => this.engine.resize())
+  }
+
+  _setupGround() {
+    // Chão industrial simples — sempre visível, recebe sombra
+    const ground = BABYLON.MeshBuilder.CreateGround('industrial_ground', {
+      width: 10, height: 10, subdivisions: 4
+    }, this.scene)
+
+    const mat = new BABYLON.StandardMaterial('ground_mat', this.scene)
+    mat.diffuseColor  = new BABYLON.Color3(0.28, 0.30, 0.33)  // cinza industrial
+    mat.specularColor = new BABYLON.Color3(0.05, 0.05, 0.05)
+    mat.roughness     = 0.9
+
+    ground.material       = mat
+    ground.receiveShadows = true
+    ground.isPickable     = false
+    ground.position.y     = -0.42  // abaixo da bomba
+
+    // Grade sutil — linhas no chão para senso de escala
+    const linhas = []
+    for (let i = -5; i <= 5; i++) {
+      linhas.push([new BABYLON.Vector3(i, -0.419, -5), new BABYLON.Vector3(i, -0.419, 5)])
+      linhas.push([new BABYLON.Vector3(-5, -0.419, i), new BABYLON.Vector3(5, -0.419, i)])
+    }
+    const grade = BABYLON.MeshBuilder.CreateLineSystem('grade_chao', { lines: linhas }, this.scene)
+    grade.color     = new BABYLON.Color3(0.35, 0.38, 0.42)
+    grade.alpha     = 0.25
+    grade.isPickable = false
+
+    this._ground = ground
+    console.log('✅ Chão industrial criado')
   }
 
   async _setup360() {
