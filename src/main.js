@@ -101,9 +101,25 @@ async function init() {
     )
     interaction.init()
 
+    // Criar painéis VR ANTES do XR para que xr.vrUI já esteja setado
+    // quando o usuário entrar no headset
+    setProgress(70)
+    const vrUI = new VRUIManager(sceneManager.scene, assembly, pumpModel)
+    vrUI.init()
+
     setStatus('Configurando WebXR...');               setProgress(74)
-    const xr = new XRManager(sceneManager.scene, interaction, assembly)
+    const xr = new XRManager(sceneManager.scene, interaction, assembly, pumpModel)
+    xr.vrUI = vrUI   // injetar antes de init para garantir callbacks funcionarem
+
+    // Expor _app cedo (antes do xr.init) — qualquer código legado que ainda
+    // leia window._app durante uma sessão XR encontra as referências válidas
+    window._app = { sceneManager, pumpModel, assembly, interaction, xr, vrUI }
+
     await xr.init()
+
+    // Performance: bloqueia checagens de "dirty" de materiais
+    // Seguro pois materiais já estão congelados (PumpModel._freezeMaterials)
+    sceneManager.scene.blockMaterialDirtyMechanism = true
 
     setStatus('Preparando animacoes...');              setProgress(82)
     const anim = new AnimationController(sceneManager.scene, pumpModel, sceneManager)
@@ -122,13 +138,6 @@ async function init() {
       if (!key) return
       _updateInfoPanelPos(sceneManager, pumpModel, key)
     })
-
-    setProgress(94)
-    const vrUI = new VRUIManager(sceneManager.scene, assembly, pumpModel)
-    vrUI.init()
-
-    // Conectar VRUIManager ao XRManager — permite callbacks ao entrar/sair VR
-    xr.vrUI = vrUI
 
     // Mostrar info VR quando peça é selecionada
     const origSelectVR = interaction.select.bind(interaction)
@@ -166,7 +175,8 @@ async function init() {
     const lab = new LabEnvironment(sceneManager.scene, sceneManager)
     await lab.init()
 
-    window._app = { sceneManager, pumpModel, assembly, interaction, xr, hud, vrUI, anim, audio, tour, lab }
+    // Atualizar _app com todas as referências (já criado mais cedo no init)
+    Object.assign(window._app, { hud, anim, audio, tour, lab })
     console.log('Simulador VR v2.0 - SENAI Antonio Adolphe Lobbe')
     console.log('Pecas:', Object.keys(pumpModel.parts).length)
 

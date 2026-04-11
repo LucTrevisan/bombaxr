@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8"/>
+  <title>Teste 360° — Diagnóstico</title>
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box }
+    body { background:#000; font-family:monospace; color:#0f0 }
+    canvas { display:block; width:100vw; height:100vh; position:fixed; top:0; left:0 }
+    #log {
+      position:fixed; top:0; left:0; z-index:10;
+      background:rgba(0,0,0,.75); padding:12px 16px;
+      font-size:13px; line-height:1.8; max-width:500px;
+      pointer-events:none;
+    }
+    .ok  { color:#0f0 }
+    .err { color:#f44 }
+    .inf { color:#ff0 }
+  </style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="log">Iniciando diagnóstico...<br></div>
+
+<script src="https://cdn.babylonjs.com/babylon.js"></script>
+<script>
+const log = document.getElementById('log')
+const add = (msg, cls='inf') => {
+  const span = document.createElement('span')
+  span.className = cls
+  span.textContent = msg
+  log.appendChild(span)
+  log.appendChild(document.createElement('br'))
+  console.log(msg)
+}
+
+// ── Engine ──────────────────────────────────────────────────────────────────
+const engine = new BABYLON.Engine(document.getElementById('c'), true)
+const scene  = new BABYLON.Scene(engine)
+scene.clearColor = new BABYLON.Color4(0,0,0,1)
+scene.fogMode = BABYLON.Scene.FOGMODE_NONE
+
+// ── Câmera ──────────────────────────────────────────────────────────────────
+const cam = new BABYLON.ArcRotateCamera('c', 0, Math.PI/3, 5, BABYLON.Vector3.Zero(), scene)
+cam.attachControl(document.getElementById('c'), true)
+cam.lowerRadiusLimit = 0.1
+cam.upperRadiusLimit = 3
+
+// ── Teste 1: Fetch ───────────────────────────────────────────────────────────
+fetch('/assets/ambiente360.jpg')
+  .then(r => {
+    const size = r.headers.get('content-length')
+    add(`✅ FETCH OK — status:${r.status} tamanho:${size} bytes`, 'ok')
+  })
+  .catch(e => add(`❌ FETCH ERRO: ${e.message}`, 'err'))
+
+// ── Teste 2: Image tag ───────────────────────────────────────────────────────
+const img = new Image()
+img.onload  = () => add(`✅ IMG OK — ${img.naturalWidth}x${img.naturalHeight}px`, 'ok')
+img.onerror = () => add('❌ IMG ERRO', 'err')
+img.src = '/assets/ambiente360.jpg'
+
+// ── Método A: Esfera + StandardMaterial ──────────────────────────────────────
+add('Testando Método A: StandardMaterial...')
+
+const sphereA = BABYLON.MeshBuilder.CreateSphere('sA', {
+  diameter: 10,
+  segments: 32,
+  sideOrientation: BABYLON.Mesh.BACKSIDE
+}, scene)
+sphereA.isPickable      = false
+sphereA.infiniteDistance = true
+sphereA.renderingGroupId = 0
+
+const matA = new BABYLON.StandardMaterial('mA', scene)
+matA.disableLighting  = true
+matA.backFaceCulling  = false
+matA.fogEnabled       = false
+sphereA.material      = matA
+
+// Fundo colorido para confirmar que a esfera está renderizando
+matA.emissiveColor = new BABYLON.Color3(0.1, 0.05, 0.15)
+add('  Esfera A criada (fundo roxo escuro visível = OK)', 'inf')
+
+// Carregar textura
+const texA = new BABYLON.Texture(
+  '/assets/ambiente360.jpg',
+  scene,
+  false,   // noMipmap
+  false,   // invertY
+  BABYLON.Texture.BILINEAR_SAMPLINGMODE,
+  () => {
+    texA.uScale = -1
+    texA.vScale =  1
+    texA.wrapU  = BABYLON.Texture.WRAP_ADDRESSMODE
+    texA.wrapV  = BABYLON.Texture.CLAMP_ADDRESSMODE
+    matA.diffuseTexture  = texA
+    matA.emissiveTexture = texA
+    matA.emissiveColor   = BABYLON.Color3.White()
+    add('✅ Método A: textura aplicada!', 'ok')
+  },
+  (msg) => {
+    add('❌ Método A: textura falhou — ' + (msg || 'erro'), 'err')
+  }
+)
+
+// ── Método B: RawTexture com URL ─────────────────────────────────────────────
+setTimeout(() => {
+  add('Testando Método B: Texture via URL direta...')
+  const tex2 = new BABYLON.Texture('/assets/ambiente360.jpg?v=' + Date.now(), scene)
+  tex2.onLoadObservable?.addOnce(() => add('✅ Método B: onLoadObservable OK', 'ok'))
+}, 2000)
+
+// ── Render loop ──────────────────────────────────────────────────────────────
+engine.runRenderLoop(() => scene.render())
+window.addEventListener('resize', () => engine.resize())
+
+// Status após 5s
+setTimeout(() => {
+  const hasTexture = matA.diffuseTexture?.isReady?.()
+  add(hasTexture
+    ? '✅ RESULTADO: Método A funcionou! Use SceneManager.js corrigido.'
+    : '⚠️  RESULTADO: Textura ainda não pronta após 5s — possível bloqueio CORS.',
+    hasTexture ? 'ok' : 'err')
+  add(`URL de origem: ${location.origin}`, 'inf')
+}, 5000)
+</script>
+</body>
+</html>

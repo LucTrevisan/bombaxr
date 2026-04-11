@@ -46,8 +46,8 @@ export class PumpModel {
       if (this._unmapped.length) {
         console.warn('⚠️ Não mapeados:', this._unmapped.length, 'meshes')
       }
-      // Escala automática — ajusta para ~0.8m de comprimento (escala realista)
-      this._autoScale(result.meshes, 0.8)
+      // Escala automática — ajusta para ~3.0m de comprimento (2x da escala anterior)
+      this._autoScale(result.meshes, 3.0)
     } catch (e) {
       console.warn('⚠️ bomba.glb não encontrado — modelo procedural ativo')
       this._buildProcedural()
@@ -56,7 +56,46 @@ export class PumpModel {
     this._storeOrigins()
     this._applyShadows()
     this._applyColorOverrides()
+    this._applyXRFlags()
+    this._freezeMaterials()
     this.loaded = true
+  }
+
+  // ── Performance: congela materiais para evitar recompile de shader ─────
+  // Seguro porque cores/PBR não mudam em runtime — só posições das peças.
+  _freezeMaterials() {
+    let count = 0
+    this.scene.materials.forEach(mat => {
+      try {
+        mat.freeze()
+        count++
+      } catch {}
+    })
+    console.log(`✅ ${count} materiais congelados`)
+  }
+
+  // ── Flags de interação XR ─────────────────────────────────────────────────
+  // Sem isNearPickable / isNearGrabbable as features NEAR_INTERACTION e
+  // POINTER_SELECTION do WebXR não conseguem detectar as peças no Quest.
+  _applyXRFlags() {
+    let count = 0
+    Object.entries(this.parts).forEach(([key, node]) => {
+      const meshes = node.getChildMeshes
+        ? [node, ...node.getChildMeshes(false)]
+        : [node]
+
+      meshes.forEach(m => {
+        if (!(m instanceof BABYLON.AbstractMesh)) return
+        m.isPickable               = true
+        m.isNearPickable           = true   // near interaction (mão)
+        m.isNearGrabbable          = true   // grab por proximidade
+        m.enablePointerMoveEvents  = true   // hover por raycast
+        if (!m.metadata) m.metadata = {}
+        if (!m.metadata.partKey) m.metadata.partKey = key
+        count++
+      })
+    })
+    console.log(`✅ Flags XR aplicadas em ${count} meshes`)
   }
 
   _parseGLB(meshes) {

@@ -27,15 +27,18 @@ export class VRUIManager {
   }
 
   // ── Chamado pelo XRManager quando entra/sai do VR ────────────────────────
-  onEnterVR() {
-    this._inVR = true
+  // xrCamera: a câmera ativa do WebXR (não a orbital do desktop)
+  onEnterVR(xrCamera = null) {
+    this._inVR    = true
+    this._xrCamera = xrCamera
     this._showAllVR()
-    // Reposicionar painéis na frente do usuário
+    // Reposicionar painéis na frente do usuário usando a câmera XR
     this._repositionPanels()
   }
 
   onExitVR() {
     this._inVR = false
+    this._xrCamera = null
     this._hideAllVR()
   }
 
@@ -168,7 +171,7 @@ export class VRUIManager {
     const plane = BABYLON.MeshBuilder.CreatePlane('vr_info',
       { width: 0.50, height: 0.65 }, this.scene)
     plane.billboardMode = BABYLON.Mesh.BILLBOARDMODE_Y
-    plane.isPickable    = false
+    plane.isPickable    = true   // necessário para o botão "Fechar" responder no VR
     plane.renderingGroupId = 1
     plane.setEnabled(false)
 
@@ -471,7 +474,8 @@ export class VRUIManager {
 
   // ── Reposicionar painéis na frente do usuário ─────────────────────────────
   _repositionPanels() {
-    const cam = this.scene.activeCamera
+    // Em VR, usar a câmera XR (não a orbital). Fallback para activeCamera.
+    const cam = this._xrCamera || this.scene.activeCamera
     if (!cam) return
 
     const forward = cam.getForwardRay(1).direction

@@ -1,0 +1,18 @@
+[33mf4d4bf3c[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m)[m feat: XR v6 - near interaction, rotate/scale obj inteiro, auto-scale GLB, chão industrial
+[33m1675a853[m fix: escala bomba 50%, explodir/montar corrigido, tour sem interferência
+[33mc24ca120[m fix: adicionar plugins array para Cloudflare Pages
+[33m0ba9d8a7[m fix: remover _redirects que causava loop no Cloudflare
+[33m08dc6e5b[m fix: adicionar plugins array para Cloudflare Pages
+[33mb50dff7d[m fix: remover manualChunks incompatível com Vite 8
+[33m8781225d[m fix: atualizar Vite para v8 — compatível com Cloudflare Pages
+[33m8e8d4b6c[m fix: base path para GitHub Pages
+[33m22018135[m feat: Fase 1 e 2 - TourManager, LabEnvironment, melhorias XR e mobile
+[33mcf48c4a3[m Migrar para Cloudflare Pages
+[33m8f7cee61[m Inversao imagem
+[33m0c45c79b[m Inversao imagem
+[33mb128a9c5[m Refatoração do XRManager e atualização de assets 360
+[33m921575fd[m CSS media querie
+[33m6562ff74[m fix: caminhos de assets para GitHub Pages
+[33m11106a9d[m fix: componentes.json com descrições completas
+[33m2dd267a3[m fix: arquivos limpos sem conflito de merge
+[33m41051538[m Simulador VR Bomba Centrífuga SENAI v2.0

@@ -134,7 +134,8 @@ export class AnimationController {
     const origY = rotor.rotation?.y || 0
 
     this._rotorObs = this.scene.registerBeforeRender(() => {
-      const dt = this.scene.getEngine().getDeltaTime() / 1000
+      // cap: máximo 50ms (20 FPS mínimo) — evita salto ao retornar de background
+      const dt = Math.min(this.scene.getEngine().getDeltaTime() / 1000, 0.05)
       this._rotorAngle += rps * dt
 
       const spin = n => {

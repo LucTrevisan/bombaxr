@@ -20,6 +20,19 @@ export default defineConfig(({ command }) => {
     build: {
       target:  'esnext',
       outDir:  'dist',
-    }
+      rollupOptions: {
+        output: {
+          manualChunks: {
+            'babylon-core':      ['@babylonjs/core'],
+            'babylon-loaders':   ['@babylonjs/loaders'],
+            'babylon-gui':       ['@babylonjs/gui'],
+            'babylon-materials': ['@babylonjs/materials'],
+          },
+        },
+      },
+    },
+    optimizeDeps: {
+      exclude: ['@babylonjs/havok'],
+    },
   }
 })

@@ -38,7 +38,7 @@ export class InteractionManager {
   }
 
   _buildSnapRings() {
-    Object.entries(this.pumpModel.parts).forEach(([key, node]) => {
+    Object.entries(this.pumpModel.parts).forEach(([key]) => {
       const ring = BABYLON.MeshBuilder.CreateTorus(`ring_${key}`, {
         diameter: 0.22, thickness: 0.008, tessellation: 48
       }, this.scene)
@@ -69,14 +69,14 @@ export class InteractionManager {
   _setupEvents() {
     this.scene.onPointerObservable.add(info => {
       switch (info.type) {
-        case BABYLON.PointerEventTypes.POINTERMOVE: this._onMove(info); break
-        case BABYLON.PointerEventTypes.POINTERDOWN: this._onDown(info); break
+        case BABYLON.PointerEventTypes.POINTERMOVE: this._onMove(); break
+        case BABYLON.PointerEventTypes.POINTERDOWN: this._onDown(); break
         case BABYLON.PointerEventTypes.POINTERUP:   this._onUp();       break
       }
     })
   }
 
-  _onMove(info) {
+  _onMove() {
     if (this._dragging && this.selectedKey) {
       const pick = this.scene.pick(
         this.scene.pointerX, this.scene.pointerY,
@@ -109,7 +109,10 @@ export class InteractionManager {
     }
   }
 
-  _onDown(info) {
+  _onDown() {
+    // Em VR o XRManager trata seu próprio raycast + drag; evitar conflito
+    if (window._app?.xr?.inXR) return
+
     const pick = this.scene.pick(
       this.scene.pointerX, this.scene.pointerY,
       m => m.isPickable && m.metadata?.partKey
@@ -143,6 +146,9 @@ export class InteractionManager {
   }
 
   _onUp() {
+    // Em VR o snap é feito pelo XRManager
+    if (window._app?.xr?.inXR) return
+
     if (this._dragging && this.selectedKey) {
       const snapped = this.assemblyManager.trySnap(this.selectedKey)
       if (snapped) {
@@ -165,6 +171,21 @@ export class InteractionManager {
     if (this.selectedKey) this._removeHl(this.selectedKey)
     this.selectedKey = null
     this._hideAllSnapRings()
+  }
+
+  // Chamado pelo XRManager._nearHighlight quando a mão se aproxima
+  highlight(key) {
+    if (!key || key === this.selectedKey) return
+    if (this.hoveredKey && this.hoveredKey !== key && this.hoveredKey !== this.selectedKey)
+      this._removeHl(this.hoveredKey)
+    this.hoveredKey = key
+    this._addHl(key, new BABYLON.Color3(0.4, 0.75, 1.0))  // azul claro = proximidade
+  }
+
+  // Chamado pelo XRManager._nearHighlight quando a mão se afasta
+  dehighlight(key) {
+    if (key !== this.selectedKey) this._removeHl(key)
+    if (this.hoveredKey === key) this.hoveredKey = null
   }
 
   _addHl(key, color) {

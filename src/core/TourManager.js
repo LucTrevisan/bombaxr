@@ -50,9 +50,6 @@ export class TourManager {
       // O ambiente360.jpg padrão já está carregado
       // Tour só muda a foto quando o usuário navegar
 
-      // Criar setas de navegação
-      this._criarSetas()
-
       // Criar painel de navegação HTML
       this._criarPainelNav()
 

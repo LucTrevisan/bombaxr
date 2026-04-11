@@ -1,0 +1,29 @@
+{
+  "pontos": [
+    {
+      "nome": "Entrada do Laboratório",
+      "foto": "ponto1.jpg",
+      "camera": { "alpha": -1.57, "beta": 1.20 }
+    },
+    {
+      "nome": "Frente da Bancada",
+      "foto": "ponto2.jpg",
+      "camera": { "alpha": 0.0,   "beta": 1.10 }
+    },
+    {
+      "nome": "Lado do Motor",
+      "foto": "ponto3.jpg",
+      "camera": { "alpha": 1.57,  "beta": 1.15 }
+    },
+    {
+      "nome": "Lado da Carcaça",
+      "foto": "ponto4.jpg",
+      "camera": { "alpha": -3.14, "beta": 1.15 }
+    },
+    {
+      "nome": "Vista Geral do Lab",
+      "foto": "ponto5.jpg",
+      "camera": { "alpha": -1.57, "beta": 0.80 }
+    }
+  ]
+}

@@ -56,9 +56,6 @@ export class SceneManager {
     this.camera.multiTouchPanAndZoom  = true
     this.camera.attachControl(this.canvas, true)
 
-    // ── Chão industrial — sempre visível como base ───────────────────────────
-    this._setupGround()
-
     // ── Ambiente 360° — método validado ──────────────────────────────────────
     await this._setup360()
 
@@ -146,8 +143,12 @@ export class SceneManager {
           if (skybox) {
             skybox.isPickable       = false
             skybox.renderingGroupId = 0
-            this._sky = skybox
+            this._sky    = skybox
+            this._envSky = skybox  // referência para ocultar ao trocar para JPG
           }
+
+          // Prepara esfera JPG oculta — usada pelo TourManager para trocar fotos
+          this._prepareJPGSphere()
 
           console.log('✅ ENV carregado — reflexos PBR de alta qualidade')
           resolve()
@@ -172,50 +173,100 @@ export class SceneManager {
     })
   }
 
-  async _setup360JPG(url) {
+  // Cria esfera JPG oculta — reutilizada pelo TourManager ao mudar foto
+  _prepareJPGSphere() {
+    if (this._jpgSphere) return  // já criada
     const sphere = BABYLON.MeshBuilder.CreateSphere('sky360', {
       diameter:        1000,
       segments:        64,
       sideOrientation: BABYLON.Mesh.BACKSIDE,
     }, this.scene)
-
     sphere.isPickable       = false
     sphere.infiniteDistance = true
     sphere.renderingGroupId = 0
-    sphere.position         = BABYLON.Vector3.Zero()
+    sphere.setEnabled(false)  // oculta enquanto ENV está ativo
 
     const mat = new BABYLON.StandardMaterial('sky360mat', this.scene)
     mat.disableLighting = true
     mat.backFaceCulling = false
     mat.fogEnabled      = false
     mat.emissiveColor   = new BABYLON.Color3(0.04, 0.06, 0.10)
-    sphere.material     = mat
-    this._sky           = sphere
+    sphere.material = mat
 
+    this._jpgSphere = sphere
+    this._skyMat    = mat  // expõe para trocarAmbiente360
+  }
+
+  async _setup360JPG(url) {
+    // PhotoDome — recomendado para Quest: leve, otimizado, sem distorção de polos
     return new Promise((resolve) => {
       const timeout = setTimeout(() => {
-        console.warn('⚠️ JPG 360° timeout')
+        console.warn('⚠️ PhotoDome 360° timeout — fallback procedural')
+        this._buildProceduralSky()
         resolve()
       }, 12000)
 
-      const tex = new BABYLON.Texture(
-        url, this.scene, false, false,
-        BABYLON.Texture.TRILINEAR_SAMPLINGMODE,
-        () => {
+      try {
+        const dome = new BABYLON.PhotoDome(
+          'sky360',
+          url,
+          { resolution: 32, size: 1000, useDirectMapping: false },
+          this.scene
+        )
+
+        dome.mesh.isPickable       = false
+        dome.mesh.renderingGroupId = 0
+
+        // PhotoDome.onLoadObservable dispara quando a textura é carregada
+        dome.onLoadObservable?.add(() => {
           clearTimeout(timeout)
-          tex.uScale = 1
-          tex.vScale = 1
-          tex.wrapU  = BABYLON.Texture.WRAP_ADDRESSMODE
-          tex.wrapV  = BABYLON.Texture.CLAMP_ADDRESSMODE
-          mat.diffuseTexture  = tex
-          mat.emissiveTexture = tex
-          mat.emissiveColor   = BABYLON.Color3.White()
-          console.log('✅ JPG 360° carregado')
+          this._jpgSphere = dome.mesh
+          this._photoDome = dome
+          this._sky       = dome.mesh
+          // Compatibilidade com trocarAmbiente360 — expomos a textura ativa
+          this._skyMat    = dome.mesh.material
+          console.log('✅ PhotoDome 360° carregado')
           resolve()
-        },
-        () => { clearTimeout(timeout); resolve() }
-      )
+        })
+
+        // Erro silencioso na textura → fallback procedural
+        dome.photoTexture?.onLoadObservable?.add(() => {
+          // duplicação intencional caso onLoadObservable não dispare
+          if (!this._photoDome) {
+            clearTimeout(timeout)
+            this._photoDome = dome
+            this._sky = dome.mesh
+            resolve()
+          }
+        })
+
+      } catch (e) {
+        clearTimeout(timeout)
+        console.warn('⚠️ PhotoDome falhou:', e.message, '— fallback procedural')
+        this._buildProceduralSky()
+        resolve()
+      }
     })
+  }
+
+  // Céu procedural escuro — usado quando não há foto 360 disponível
+  _buildProceduralSky() {
+    if (this._sky) return
+    const sphere = BABYLON.MeshBuilder.CreateSphere('sky_proc', {
+      diameter: 1000, segments: 32, sideOrientation: BABYLON.Mesh.BACKSIDE,
+    }, this.scene)
+    sphere.isPickable       = false
+    sphere.infiniteDistance = true
+    sphere.renderingGroupId = 0
+
+    const mat = new BABYLON.StandardMaterial('sky_proc_mat', this.scene)
+    mat.disableLighting = true
+    mat.backFaceCulling = false
+    mat.fogEnabled      = false
+    mat.emissiveColor   = new BABYLON.Color3(0.04, 0.06, 0.10)
+    sphere.material     = mat
+
+    this._sky = sphere
   }
 
   _setupLighting() {
@@ -272,36 +323,64 @@ export class SceneManager {
   }
 
   // ── Trocar foto do ambiente 360° — usado pelo TourManager ─────────────
+  // Suporta PhotoDome (preferido) e fallback ENV/Sphere
   async trocarAmbiente360(url) {
+    // Se estava em modo ENV, ocultar skybox cúbico
+    if (this._envSky) {
+      this._envSky.setEnabled(false)
+    }
+
+    // Caminho preferido: PhotoDome — basta atualizar a photoTexture
+    if (this._photoDome) {
+      return new Promise((resolve) => {
+        const timeout = setTimeout(resolve, 8000)
+        try {
+          const newTex = new BABYLON.Texture(
+            url, this.scene, false, false,
+            BABYLON.Texture.TRILINEAR_SAMPLINGMODE,
+            () => {
+              clearTimeout(timeout)
+              const old = this._photoDome.photoTexture
+              this._photoDome.photoTexture = newTex
+              old?.dispose()
+              this._photoDome.mesh.setEnabled(true)
+              resolve()
+            },
+            () => { clearTimeout(timeout); resolve() }
+          )
+        } catch { clearTimeout(timeout); resolve() }
+      })
+    }
+
+    // Fallback antigo: esfera + StandardMaterial (caminho legado)
+    const mat = this._skyMat
+    if (!mat || !mat.diffuseTexture) { return }
+
     return new Promise((resolve) => {
-      const mat = this._skyMat
-      if (!mat) { resolve(); return }
-
       const timeout = setTimeout(resolve, 8000)
-
       const tex = new BABYLON.Texture(
         url, this.scene, false, false,
         BABYLON.Texture.TRILINEAR_SAMPLINGMODE,
         () => {
           clearTimeout(timeout)
-          tex.uScale = 1
-          tex.vScale = 1
-          tex.wrapU  = BABYLON.Texture.WRAP_ADDRESSMODE
-          tex.wrapV  = BABYLON.Texture.CLAMP_ADDRESSMODE
-
           mat.diffuseTexture?.dispose()
           mat.emissiveTexture?.dispose()
-
           mat.diffuseTexture  = tex
           mat.emissiveTexture = tex
           mat.emissiveColor   = BABYLON.Color3.White()
-
-          if (this._sky) this._sky.setEnabled(true)
-
+          if (this._jpgSphere) this._jpgSphere.setEnabled(true)
           resolve()
         },
         () => { clearTimeout(timeout); resolve() }
       )
     })
+  }
+
+  // Restaurar ENV skybox ao sair do tour
+  restaurarENV() {
+    if (this._envSky) {
+      this._envSky.setEnabled(true)
+      if (this._jpgSphere) this._jpgSphere.setEnabled(false)
+    }
   }
 }
