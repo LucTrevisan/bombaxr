@@ -44,10 +44,10 @@
     .ld-brand{display:flex;flex-direction:column}
     .ld-brand-unit{font-family:var(--ffc);font-size:11px;font-weight:400;letter-spacing:3px;text-transform:uppercase;color:var(--muted)}
     .ld-brand-name{font-family:var(--ffc);font-size:20px;font-weight:700;color:#fff;letter-spacing:1px}
-    .ld-stripe{width:480px;height:3px;background:linear-gradient(90deg,var(--verm),#ff3355);margin-bottom:28px}
-    .ld-title{font-family:var(--ffc);font-size:52px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:#fff;margin-bottom:6px;text-align:center}
-    .ld-sub{font-family:var(--ffc);font-size:16px;font-weight:300;letter-spacing:6px;text-transform:uppercase;color:var(--muted);margin-bottom:36px}
-    .ld-bar-wrap{width:480px;height:2px;background:rgba(255,255,255,.06);border-radius:2px;overflow:hidden;margin-bottom:14px}
+    .ld-stripe{width:min(480px,90vw);height:3px;background:linear-gradient(90deg,var(--verm),#ff3355);margin-bottom:28px}
+    .ld-title{font-family:var(--ffc);font-size:clamp(26px,7vw,52px);font-weight:800;letter-spacing:2px;text-transform:uppercase;color:#fff;margin-bottom:6px;text-align:center}
+    .ld-sub{font-family:var(--ffc);font-size:clamp(11px,2vw,16px);font-weight:300;letter-spacing:clamp(2px,0.5vw,6px);text-transform:uppercase;color:var(--muted);margin-bottom:clamp(20px,4vw,36px)}
+    .ld-bar-wrap{width:min(480px,85vw);height:2px;background:rgba(255,255,255,.06);border-radius:2px;overflow:hidden;margin-bottom:14px}
     #loading-bar{height:100%;background:linear-gradient(90deg,var(--verm),#ff3355);width:0%;transition:width .35s ease}
     #loading-status{font-family:var(--ffc);font-size:12px;letter-spacing:3px;text-transform:uppercase;color:var(--muted)}
 
@@ -66,7 +66,7 @@
     #senai-logo-box img{height:44px;display:block}
     .senai-info{display:flex;flex-direction:column;justify-content:center;padding:0 18px}
     .senai-unit{font-family:var(--ffc);font-size:11px;font-weight:400;letter-spacing:2px;text-transform:uppercase;color:rgba(255,255,255,.7)}
-    .senai-title{font-family:var(--ffc);font-size:20px;font-weight:800;color:#fff;letter-spacing:.5px}
+    .senai-title{font-family:var(--ffc);font-size:clamp(12px,2.5vw,20px);font-weight:800;color:#fff;letter-spacing:.5px}
 
     #status-row{display:flex;gap:8px;align-items:center;padding:12px 18px}
     .pill{font-family:var(--ffc);font-size:11px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;padding:5px 14px;border-radius:2px;border:1px solid rgba(255,255,255,.10);background:rgba(0,0,0,.4);color:var(--muted)}
@@ -94,8 +94,8 @@
 
     #mode-row{display:flex;gap:8px;flex-wrap:wrap}
     .mode-btn{
-      font-family:var(--ffc);font-size:22px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;
-      padding:14px 28px;border:1px solid rgba(255,255,255,.08);border-radius:2px;
+      font-family:var(--ffc);font-size:clamp(13px,2.2vw,22px);font-weight:700;letter-spacing:1.5px;text-transform:uppercase;
+      padding:clamp(8px,1.2vw,14px) clamp(14px,2.5vw,28px);border:1px solid rgba(255,255,255,.08);border-radius:2px;
       background:rgba(255,255,255,.04);backdrop-filter:blur(12px);color:var(--muted);
       cursor:pointer;transition:all .15s ease;
     }
@@ -105,9 +105,9 @@
     /* Toolbar */
     #toolbar{position:fixed;bottom:90px;right:18px;display:flex;flex-direction:column;gap:8px;z-index:50;pointer-events:auto}
     .tool-btn{
-      width:46px;height:46px;border-radius:50%;
+      width:clamp(40px,4.5vw,50px);height:clamp(40px,4.5vw,50px);border-radius:50%;
       background:rgba(6,13,24,.92);backdrop-filter:blur(12px);
-      border:1px solid rgba(255,255,255,.08);color:var(--text);font-size:19px;
+      border:1px solid rgba(255,255,255,.08);color:var(--text);font-size:clamp(16px,2vw,21px);
       cursor:pointer;display:flex;align-items:center;justify-content:center;
       transition:all .15s;pointer-events:auto;
     }
@@ -131,7 +131,7 @@
 
     /* Painel guiado */
     #guiado-panel{
-      position:fixed;top:80px;right:80px;width:260px;
+      position:fixed;top:80px;right:clamp(18px,7vw,80px);width:clamp(220px,22vw,280px);
       background:var(--panel);backdrop-filter:blur(16px);
       border:1px solid rgba(0,200,255,.15);border-right:3px solid var(--accent);
       border-radius:4px 0 0 4px;padding:16px 18px;z-index:50;
@@ -150,7 +150,7 @@
     /* ── PAINEL DE INFORMAÇÕES DA PEÇA — redesenhado ── */
     #info-panel{
       position:fixed;left:18px;bottom:90px;
-      width:340px;max-height:75vh;overflow-y:auto;
+      width:clamp(280px,28vw,380px);max-height:75vh;overflow-y:auto;
       background:var(--panel);backdrop-filter:blur(20px);
       border:1px solid rgba(255,255,255,.07);
       border-radius:4px;overflow:hidden;z-index:50;
@@ -168,7 +168,7 @@
       letter-spacing:2px;text-transform:uppercase;padding:5px 14px;border-radius:2px;
       border:1px solid;margin-bottom:12px;
     }
-    #info-nome{font-family:var(--ffc);font-size:28px;font-weight:800;line-height:1.2;margin-bottom:4px}
+    #info-nome{font-family:var(--ffc);font-size:clamp(20px,3vw,28px);font-weight:800;line-height:1.2;margin-bottom:4px}
     #info-en{font-family:var(--ffc);font-size:14px;font-weight:400;letter-spacing:1px;color:var(--muted);text-transform:uppercase}
 
     #info-close{
@@ -230,11 +230,11 @@
     #result-overlay.hidden{display:none}
     .res-stripe{width:120px;height:3px;background:var(--verm);margin-bottom:4px}
     .res-titulo{font-size:11px;font-weight:700;letter-spacing:5px;text-transform:uppercase;color:var(--verm)}
-    .res-score{font-size:80px;font-weight:900;color:var(--accent);line-height:1}
+    .res-score{font-size:clamp(48px,10vw,80px);font-weight:900;color:var(--accent);line-height:1}
     .res-sub{font-size:13px;letter-spacing:2px;color:var(--muted)}
-    .res-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:40px;margin:12px 0}
+    .res-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:clamp(16px,4vw,40px);margin:12px 0}
     .res-stat{text-align:center}
-    .res-stat-val{font-size:32px;font-weight:800}
+    .res-stat-val{font-size:clamp(22px,4vw,32px);font-weight:800}
     .res-stat-key{font-size:9px;letter-spacing:3px;text-transform:uppercase;color:var(--muted);margin-top:4px}
     #btn-resultado-fechar{
       margin-top:8px;padding:14px 40px;background:var(--verm);border:none;
@@ -276,6 +276,8 @@
 
     /* ══════════════════════════════════════════════════════════════
        RESPONSIVE — phone / tablet / desktop / large / VR headset
+       Base styles já usam clamp()/min() para escalar fluidamente.
+       Media queries abaixo tratam mudanças de LAYOUT, não de tamanho.
        ══════════════════════════════════════════════════════════════ */
 
     /* Safe-area para iPhones com notch / Dynamic Island */
@@ -289,12 +291,15 @@
 
     /* ── Telefone pequeno (< 375px) ─────────────────────────────── */
     @media(max-width:374px){
-      .ld-title{font-size:26px}
-      .ld-sub{font-size:10px;letter-spacing:2px}
-      .ld-logo-box img{height:32px}
-      .senai-title{font-size:12px}
-      .mode-btn{font-size:12px;padding:8px 12px}
-      #info-panel{max-height:70vh}
+      .ld-logo-box img{height:28px}
+      .ld-logo-wrap{gap:8px}
+      .senai-unit{display:none}
+      #info-panel{max-height:65vh}
+      #avaliacao-panel{padding:10px 12px}
+      .av-val{font-size:18px}
+      #tour-nav{padding:6px 10px;gap:6px}
+      .tour-btn{width:32px;height:32px;font-size:14px}
+      #tour-nome{min-width:80px;font-size:10px}
     }
 
     /* ── Telefone (≤ 768px) ──────────────────────────────────────── */
@@ -303,17 +308,12 @@
       /* Loading — compacto */
       .ld-logo-wrap{flex-direction:column;gap:12px;margin-bottom:20px}
       .ld-divider{width:60px;height:1px}
-      .ld-stripe{width:90vw}
-      .ld-title{font-size:32px;letter-spacing:1px}
-      .ld-sub{font-size:12px;letter-spacing:3px;margin-bottom:24px}
-      .ld-bar-wrap{width:80vw}
 
       /* Header SENAI — versão compacta */
       #senai-block{clip-path:none;padding-right:16px}
       #senai-logo-box img{height:32px}
       .senai-info{padding:0 10px}
       .senai-unit{font-size:9px;letter-spacing:1px}
-      .senai-title{font-size:14px}
       #status-row{padding:8px 10px;gap:6px}
       .pill{font-size:9px;padding:4px 8px}
 
@@ -331,14 +331,10 @@
         scrollbar-width:none;
       }
       #mode-row::-webkit-scrollbar{display:none}
-      .mode-btn{
-        font-size:14px;padding:10px 16px;
-        white-space:nowrap;flex-shrink:0;
-      }
+      .mode-btn{white-space:nowrap;flex-shrink:0}
 
-      /* Toolbar — coluna compacta */
+      /* Toolbar — coluna compacta no topo */
       #toolbar{bottom:auto;top:70px;right:8px;flex-direction:column;gap:6px}
-      .tool-btn{width:42px;height:42px;font-size:17px}
 
       /* Painel de info — bottom sheet */
       #info-panel{
@@ -350,7 +346,6 @@
         overflow-y:auto;
       }
       #info-sidebar{display:none}
-      #info-nome{font-size:22px}
       #info-close{top:14px;right:16px;font-size:22px;width:32px;height:32px}
 
       /* Avaliação e guiado — largura total */
@@ -368,17 +363,17 @@
       /* XR status */
       #xr-status{font-size:11px;padding:8px 14px;top:68px}
 
-      /* Resultado */
-      .res-score{font-size:60px}
-      .res-stats{gap:20px}
-      .res-stat-val{font-size:24px}
-
       /* Toast */
       #toast{font-size:12px;padding:8px 16px;max-width:90vw;white-space:normal;text-align:center}
 
       /* Tour nav */
-      #tour-nav{width:90vw;padding:8px 14px;gap:8px}
-      #tour-nome{font-size:11px;min-width:100px}
+      #tour-nav{width:min(90vw,460px);padding:8px 14px;gap:8px}
+      #tour-nome{font-size:11px;min-width:80px}
+
+      /* Resultado */
+      #result-overlay{padding:20px}
+      .res-stats{gap:16px}
+      #btn-resultado-fechar{width:100%;max-width:300px}
     }
 
     /* ── Telefone na horizontal (landscape) ─────────────────────── */
@@ -387,28 +382,17 @@
       #bottom-bar{padding:6px 12px;gap:4px}
       .mode-btn{font-size:12px;padding:7px 12px}
       #toolbar{top:50%;transform:translateY(-50%);right:6px;gap:4px}
-      .tool-btn{width:38px;height:38px;font-size:15px}
-      #info-panel{max-height:75vh}
-      .ld-title{font-size:24px}
-      .ld-sub{margin-bottom:12px}
-      .ld-bar-wrap{width:60vw}
+      .tool-btn{width:36px;height:36px;font-size:14px}
+      #info-panel{max-height:80vh}
+      #avaliacao-panel,#guiado-panel{bottom:80px}
+      #tour-nav{bottom:10px}
+      .ld-logo-wrap{flex-direction:row;gap:10px;margin-bottom:12px}
     }
 
     /* ── Tablet (769px – 1024px) ─────────────────────────────────── */
     @media(min-width:769px) and (max-width:1024px){
-      .mode-btn{font-size:16px;padding:11px 18px}
-      #info-panel{width:300px}
-      .tool-btn{width:44px;height:44px}
       #senai-logo-box img{height:38px}
-    }
-
-    /* ── Large desktop / ultrawide (≥ 1440px) ───────────────────── */
-    @media(min-width:1440px){
-      .mode-btn{font-size:24px;padding:16px 32px}
-      #info-panel{width:380px}
-      .tool-btn{width:50px;height:50px;font-size:21px}
-      .ld-title{font-size:64px}
-      #progress-pct{font-size:18px}
+      #guiado-panel{right:60px}
     }
 
     /* ── Todos os dispositivos touch ────────────────────────────── */
@@ -420,8 +404,12 @@
       .tour-btn{width:44px;height:44px;font-size:18px}
     }
 
+    /* ── Reduzir animações (acessibilidade) ─────────────────────── */
+    @media(prefers-reduced-motion:reduce){
+      *,*::before,*::after{animation-duration:0.01ms!important;transition-duration:0.01ms!important}
+    }
+
     /* ── VR mode: ocultar HUD 2D quando dentro da sessão XR ────── */
-    /* O XRManager adiciona body.in-vr ao entrar no headset          */
     body.in-vr #hud,
     body.in-vr #toolbar,
     body.in-vr #xr-status,

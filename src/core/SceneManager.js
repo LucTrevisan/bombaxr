@@ -32,7 +32,8 @@ export class SceneManager {
       failIfMajorPerformanceCaveat: false,  // não falhar em dispositivos lentos
     })
 
-    this.engine.setHardwareScalingLevel(1.0)
+    const dpr = Math.min(window.devicePixelRatio || 1, 2)
+    this.engine.setHardwareScalingLevel(1 / dpr)
 
     // ── Cena ────────────────────────────────────────────────────────────────
     this.scene = new BABYLON.Scene(this.engine)
@@ -336,7 +337,7 @@ export class SceneManager {
         const timeout = setTimeout(resolve, 8000)
         try {
           const newTex = new BABYLON.Texture(
-            url, this.scene, false, false,
+            url, this.scene, true, true,
             BABYLON.Texture.TRILINEAR_SAMPLINGMODE,
             () => {
               clearTimeout(timeout)
@@ -359,7 +360,7 @@ export class SceneManager {
     return new Promise((resolve) => {
       const timeout = setTimeout(resolve, 8000)
       const tex = new BABYLON.Texture(
-        url, this.scene, false, false,
+        url, this.scene, false, true,
         BABYLON.Texture.TRILINEAR_SAMPLINGMODE,
         () => {
           clearTimeout(timeout)
