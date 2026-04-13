@@ -40,23 +40,28 @@ export const GRUPOS = {
 // Nomes vêm no formato "Nome:N" (ex: "Base Pump:1", "Centrifugal Pump:1")
 // O parser remove o sufixo ":N" antes de comparar
 export const MESH_MAP = [
-  // ── Componentes principais do Inventor ────────────────────────────────────
+  // ── Componentes principais — fragmentos MAIS ESPECÍFICOS primeiro ─────────
   { fragment: 'base pump',          key: 'support'            },
   { fragment: 'centrifugal pump',   key: 'pump_casing'        },
+  { fragment: 'pump protection',    key: 'pump_protection'    },
+  { fragment: 'pump coupling',      key: 'pump_coupling'      },
+  { fragment: 'drive coupling',     key: 'coupling'           },
+  { fragment: 'sleeve hub',         key: 'pump_coupling'      },
   { fragment: 'coupling',           key: 'coupling'           },
   { fragment: 'moteur_wftp2',       key: 'motor_body'         },
   { fragment: 'moteur_wftp',        key: 'motor_body'         },
   { fragment: 'moteur',             key: 'motor_body'         },
+  { fragment: 'motor body',         key: 'motor_body'         },
+  { fragment: 'motor casin',        key: 'motor_body'         },
+  { fragment: 'motor rotor',        key: 'motor_rotor'        },
   { fragment: 'motor',              key: 'motor_body'         },
-  { fragment: 'pump protection',    key: 'pump_protection'    },
 
-  // ── Nomes alternativos / sub-assemblies ───────────────────────────────────
+  // ── Componentes internos ──────────────────────────────────────────────────
   { fragment: 'pump casing',        key: 'pump_casing'        },
   { fragment: 'pump casin',         key: 'pump_casing'        },
   { fragment: 'pump impeller',      key: 'pump_impeller'      },
   { fragment: 'pump impellar',      key: 'pump_impeller'      },
   { fragment: 'impeller',           key: 'pump_impeller'      },
-  { fragment: 'pump coupling',      key: 'pump_coupling'      },
   { fragment: 'shaft',              key: 'shaft'              },
   { fragment: 'house bearing',      key: 'house_bearing'      },
   { fragment: 'bearing housing',    key: 'house_bearing'      },
@@ -67,19 +72,26 @@ export const MESH_MAP = [
   { fragment: 'pump lantern ring',  key: 'pump_lantern_ring'  },
   { fragment: 'lantern ring',       key: 'pump_lantern_ring'  },
   { fragment: 'lentern ring',       key: 'pump_lantern_ring'  },
+  { fragment: 'punp lantern ring',  key: 'pump_lantern_ring'  },
   { fragment: 'pump packing set',   key: 'pump_packing_set'   },
+  { fragment: 'punp packing set',   key: 'pump_packing_set'   },
   { fragment: 'packing set',        key: 'pump_packing_set'   },
   { fragment: 'packing',            key: 'pump_packing_set'   },
   { fragment: 'wear ring',          key: 'wear_ring'          },
   { fragment: 'bearing cover',      key: 'bearing_cover'      },
-  { fragment: 'support',            key: 'support'            },
-  { fragment: 'motor body',         key: 'motor_body'         },
-  { fragment: 'motor casin',        key: 'motor_body'         },
   { fragment: 'fr motor cover',     key: 'fr_motor_cover'     },
   { fragment: 'r motor cover',      key: 'r_motor_cover'      },
-  { fragment: 'motor rotor',        key: 'motor_rotor'        },
+  { fragment: 'support',            key: 'support'            },
 
-  // ── Parafusos e fixadores DIN (agrupados como 'parafusos') ───────────────
+  // ── Estrutura metálica (frame/base) — tudo vira 'support' ────────────────
+  { fragment: 'din 1028',           key: 'support'            },
+  { fragment: 'din 1026',           key: 'support'            },
+  { fragment: 'mirrordin',          key: 'support'            },
+  { fragment: 'mirrormirrorplate',  key: 'support'            },
+  { fragment: 'mirrorplate',        key: 'support'            },
+  { fragment: 'plate',              key: 'support'            },
+
+  // ── Parafusos e fixadores DIN ─────────────────────────────────────────────
   { fragment: 'din 128',            key: 'parafusos'          },
   { fragment: 'din 933',            key: 'parafusos'          },
   { fragment: 'din 934',            key: 'parafusos'          },

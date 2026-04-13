@@ -5,12 +5,12 @@ import { MONTAGEM_SEQ } from '../utils/constants.js'
 import { SaveManager }  from '../utils/SaveManager.js'
 
 const GRUPO_COR = {
-  hidraulico:  '#00C8FF',
-  transmissao: '#FFB830',
+  hidraulico:  '#00c8f0',
+  transmissao: '#f06000',
   mancal:      '#A78BFA',
-  vedacao:     '#34D399',
-  motor:       '#F87171',
-  estrutura:   '#94A3B8',
+  vedacao:     '#00e87a',
+  motor:       '#f0c000',
+  estrutura:   '#506070',
 }
 
 const GRUPO_LABEL = {

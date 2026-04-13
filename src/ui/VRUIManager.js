@@ -57,7 +57,7 @@ export class VRUIManager {
     bg.background   = 'rgba(8,12,24,0.96)'
     bg.cornerRadius = 20
     bg.thickness    = 2
-    bg.color        = '#C8102E'
+    bg.color        = '#00c8f0'
     bg.width = '100%'; bg.height = '100%'
     tex.addControl(bg)
 
@@ -71,7 +71,7 @@ export class VRUIManager {
     // Título
     const title = new GUI.TextBlock()
     title.text      = 'BOMBA CENTRÍFUGA'
-    title.color     = '#C8102E'
+    title.color     = '#00c8f0'
     title.fontSize  = 32
     title.height    = '36px'
     title.fontWeight = 'bold'
@@ -88,13 +88,13 @@ export class VRUIManager {
     // Separador
     const sep = new GUI.Rectangle()
     sep.height = '2px'; sep.width = '88%'
-    sep.background = '#C8102E'; sep.thickness = 0
+    sep.background = '#00c8f0'; sep.thickness = 0
     sep.paddingTop = '8px'; sep.paddingBottom = '8px'
     stack.addControl(sep)
 
     // Botões de modo
     const modos = [
-      { id: 'visualizacao', label: '👁  Visualizar',  cor: '#C8102E' },
+      { id: 'visualizacao', label: '👁  Visualizar',  cor: '#00c8f0' },
       { id: 'livre',        label: '🔧  Livre',        cor: '#1A2030' },
       { id: 'guiado',       label: '📋  Guiado',       cor: '#1A2030' },
       { id: 'avaliacao',    label: '🏆  Avaliação',    cor: '#1A2030' },
@@ -106,18 +106,18 @@ export class VRUIManager {
       btn.height          = '78px'
       btn.color           = '#E8EDF5'
       btn.fontSize        = 28
-      btn.background      = id === 'visualizacao' ? '#C8102E' : '#1A2030'
+      btn.background      = id === 'visualizacao' ? '#00c8f0' : '#1A2030'
       btn.cornerRadius    = 10
       btn.thickness       = 1
       btn.paddingTop = btn.paddingBottom = '4px'
       btn.isHitTestVisible = true
 
       btn.onPointerEnterObservable.add(() => {
-        if (btn.background !== '#C8102E') btn.background = '#253045'
+        if (btn.background !== '#00c8f0') btn.background = '#253045'
       })
       btn.onPointerOutObservable.add(() => {
         const ativo = this._modoAtivo === id
-        btn.background = ativo ? '#C8102E' : '#1A2030'
+        btn.background = ativo ? '#00c8f0' : '#1A2030'
       })
       btn.onPointerUpObservable.add(() => {
         this._setModoVR(id)
@@ -265,7 +265,7 @@ export class VRUIManager {
     torqueBox.background  = 'rgba(200,16,46,0.10)'
     torqueBox.cornerRadius = 8
     torqueBox.thickness   = 1
-    torqueBox.color       = '#C8102E44'
+    torqueBox.color       = '#00c8f044'
     torqueBox.paddingTop  = '6px'
 
     const torqueText = new GUI.TextBlock()
@@ -385,12 +385,12 @@ export class VRUIManager {
     // Toolbar pequena no pulso esquerdo (wrist-attached em versão futura)
     // Por ora, painel pequeno flutuante
     const plane = BABYLON.MeshBuilder.CreatePlane('vr_toolbar',
-      { width: 0.30, height: 0.12 }, this.scene)
+      { width: 0.45, height: 0.12 }, this.scene)
     plane.billboardMode = BABYLON.Mesh.BILLBOARDMODE_Y
     plane.isPickable    = true
     plane.renderingGroupId = 1
 
-    const tex = GUI.AdvancedDynamicTexture.CreateForMesh(plane, 300, 120)
+    const tex = GUI.AdvancedDynamicTexture.CreateForMesh(plane, 450, 120)
 
     const bg = new GUI.Rectangle()
     bg.background = 'rgba(8,12,24,0.90)'
@@ -407,6 +407,8 @@ export class VRUIManager {
       { label: '🔩', fn: () => this.assembly.montar(true)    },
       { label: '↺',  fn: () => this.assembly.reset()         },
       { label: '💡', fn: () => this._showHint()               },
+      { label: '🎬', fn: () => this._playCinematic()          },
+      { label: '💧', fn: () => this._toggleFlow()             },
     ]
 
     toolBtns.forEach(({ label, fn }) => {
@@ -430,9 +432,9 @@ export class VRUIManager {
     if (!meta) return
 
     const GRUPO_COR = {
-      hidraulico: '#00C8FF', transmissao: '#FFB830',
-      mancal: '#A78BFA',    vedacao: '#34D399',
-      motor: '#F87171',     estrutura: '#94A3B8',
+      hidraulico: '#00c8f0', transmissao: '#f06000',
+      mancal: '#A78BFA',    vedacao: '#00e87a',
+      motor: '#f0c000',     estrutura: '#506070',
     }
     const cor = GRUPO_COR[meta.grupo] || '#00C8FF'
 
@@ -453,7 +455,7 @@ export class VRUIManager {
         ? `TORQUE: ${meta.torque}`
         : `FERRAMENTA: ${meta.ferramenta || '—'}`
       if (this._panels.infoTorqueBox) {
-        this._panels.infoTorqueBox.color      = temTorque ? '#C8102E44' : '#00C8FF22'
+        this._panels.infoTorqueBox.color      = temTorque ? '#00c8f044' : '#00C8FF22'
         this._panels.infoTorqueBox.background = temTorque ? 'rgba(200,16,46,0.10)' : 'rgba(0,200,255,0.05)'
       }
     }
@@ -518,7 +520,7 @@ export class VRUIManager {
     const modos = ['visualizacao', 'livre', 'guiado', 'avaliacao']
     modos.forEach(m => {
       const btn = this._panels[`vrbtn_${m}`]
-      if (btn) btn.background = m === id ? '#C8102E' : '#1A2030'
+      if (btn) btn.background = m === id ? '#00c8f0' : '#1A2030'
     })
 
     // Mostrar/esconder painel de passo
@@ -537,6 +539,18 @@ export class VRUIManager {
     if (!meta || !this._panels.stepName) return
     this._panels.stepName.text = `💡 ${meta.label}`
     this._panels.stepPlane?.setEnabled(true)
+  }
+
+  _playCinematic() {
+    const anim = window._app?.xr?.anim || window._app?.anim
+    if (!anim || anim.isPlaying) return
+    anim.playDisassembly()
+  }
+
+  _toggleFlow() {
+    const anim = window._app?.xr?.anim || window._app?.anim
+    if (!anim) return
+    anim._flowParticles ? anim.stopFlow() : anim.startFlow()
   }
 
   _showAllVR() {

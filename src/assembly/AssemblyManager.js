@@ -187,7 +187,8 @@ export class AssemblyManager {
 
     const promises  = []
     Object.entries(this.pumpModel.parts).forEach(([key, node]) => {
-      const off    = EXPLODE[key] ?? new BABYLON.Vector3(0, 0.5, 0)
+      const baseKey = key.replace(/_\d+$/, '')
+      const off    = EXPLODE[key] ?? EXPLODE[baseKey] ?? new BABYLON.Vector3(0, 0.5, 0)
       const origin = this.pumpModel.originPos[key]
       if (!origin) {
         // Usar posição atual como origem e registrar

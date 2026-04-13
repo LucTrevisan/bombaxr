@@ -53,12 +53,26 @@ export class PumpModel {
       this._buildProcedural()
     }
 
+    this._normalizeHierarchy()
     this._storeOrigins()
     this._applyShadows()
     this._applyColorOverrides()
     this._applyXRFlags()
     this._freezeMaterials()
     this.loaded = true
+  }
+
+  _normalizeHierarchy() {
+    let count = 0
+    Object.entries(this.parts).forEach(([key, node]) => {
+      if (node && node.parent !== this.rootNode && typeof node.setParent === 'function') {
+        node.setParent(this.rootNode)
+        count++
+      }
+    })
+    if (count > 0) {
+      console.log(`✅ Hierarquia normalizada: ${count} peças reparentadas para rootNode`)
+    }
   }
 
   // ── Performance: congela materiais para evitar recompile de shader ─────
@@ -78,20 +92,23 @@ export class PumpModel {
   // Sem isNearPickable / isNearGrabbable as features NEAR_INTERACTION e
   // POINTER_SELECTION do WebXR não conseguem detectar as peças no Quest.
   _applyXRFlags() {
+    const NON_INTERACTIVE = /^support(_\d+)?$/
     let count = 0
     Object.entries(this.parts).forEach(([key, node]) => {
+      const isStructural = NON_INTERACTIVE.test(key)
       const meshes = node.getChildMeshes
         ? [node, ...node.getChildMeshes(false)]
         : [node]
 
       meshes.forEach(m => {
         if (!(m instanceof BABYLON.AbstractMesh)) return
-        m.isPickable               = true
-        m.isNearPickable           = true   // near interaction (mão)
-        m.isNearGrabbable          = true   // grab por proximidade
-        m.enablePointerMoveEvents  = true   // hover por raycast
+        m.isPickable               = !isStructural
+        m.isNearPickable           = !isStructural
+        m.isNearGrabbable          = !isStructural
+        m.enablePointerMoveEvents  = !isStructural
         if (!m.metadata) m.metadata = {}
         if (!m.metadata.partKey) m.metadata.partKey = key
+        if (isStructural) m.metadata.interactive = false
         count++
       })
     })
@@ -390,25 +407,10 @@ export class PumpModel {
     console.log(`✅ Escala automática: ${scale.toFixed(3)}x (modelo: ${maxDim.toFixed(3)}m → ${targetSizeMeters}m)`)
   }
 
-  _storeOrigins() {  // também chamado pelo AssemblyManager como fallback
+  _storeOrigins() {
     Object.entries(this.parts).forEach(([k, n]) => {
       this.originPos[k] = n.position.clone()
       this.originRot[k] = n.rotation ? n.rotation.clone() : new BABYLON.Vector3(0,0,0)
-    })
-
-    // Corrigir X das peças desalinhadas — valor confirmado x=+0.05
-    const CORRIGIR_X = {
-      'bearing_cover':   0.05,
-      'coupling':        0.05,
-      'wear_ring':       0.05,
-      'bearing_cover_2': 0.05,
-      'coupling_2':      0.05,
-      'wear_ring_2':     0.05,
-    }
-    Object.entries(CORRIGIR_X).forEach(([k, xVal]) => {
-      const node = this.parts[k]
-      if (node) node.position.x = xVal
-      if (this.originPos[k]) this.originPos[k].x = xVal
     })
   }
 

@@ -123,21 +123,14 @@ async function init() {
 
     setStatus('Preparando animacoes...');              setProgress(82)
     const anim = new AnimationController(sceneManager.scene, pumpModel, sceneManager)
+    xr.anim = anim
 
     let hud = null
     setStatus('Construindo interface...');             setProgress(88)
     hud = new HUDManager(assembly, pumpModel, audio)
     hud.init()
 
-    // Conectar selecao ao painel de info
-    // Atualizar posição do painel de info a cada frame da câmera
-    sceneManager.scene.registerAfterRender(() => {
-      const panel = document.getElementById('info-panel')
-      if (!panel || panel.classList.contains('hidden')) return
-      const key = panel._currentKey
-      if (!key) return
-      _updateInfoPanelPos(sceneManager, pumpModel, key)
-    })
+    // Painel de info fixo no lado direito (estilo morsa)
 
     // Mostrar info VR quando peça é selecionada
     const origSelectVR = interaction.select.bind(interaction)
@@ -145,7 +138,6 @@ async function init() {
       origSelectVR(key)
       hud?.showPartInfo(key)
       if (xr.inXR) vrUI.showPartInfoVR(key)
-      _updateInfoPanelPos(sceneManager, pumpModel, key)
     }
 
     // Snap com feedback completo

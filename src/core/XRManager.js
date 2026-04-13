@@ -1,16 +1,15 @@
 /**
- * XRManager v8 — WebXR refatorado para Meta Quest
+ * XRManager v9 — WebXR robusto para Meta Quest
  *
- * Mudanças v8:
- * - Single XR helper (immersive-vr) — sem conflito de pointer selection
- * - Dependências injetadas (pumpModel, vrUI) — sem window._app
- * - Passthrough opcional via environmentBlendMode (Quest decide)
- * - GUI buttons funcionam via POINTER_SELECTION padrão
+ * v9: hierarquia normalizada, haptics, cinemática VR,
+ *     fallbacks de posição do controller, pick tolerante
  */
 import * as BABYLON from '@babylonjs/core'
 
-const PINCH_ON  = 0.025
-const PINCH_OFF = 0.055
+const PINCH_ON  = 0.028
+const PINCH_OFF = 0.058
+const NEAR_RADIUS = 0.25
+const RAY_LENGTH  = 20
 
 export class XRManager {
   constructor(scene, interaction, assembly, pumpModel) {
@@ -19,7 +18,8 @@ export class XRManager {
     this.assembly    = assembly
     this.pumpModel   = pumpModel
     this.xrHelper    = null
-    this.vrUI        = null   // setado por main.js após criar VRUIManager
+    this.vrUI        = null
+    this.anim        = null   // AnimationController — setado por main.js
     this.inXR        = false
 
     this._grabState = { key: null, offset: null }
@@ -69,7 +69,7 @@ export class XRManager {
       this._setupControllers()
       this._bindStateChanges()
 
-      console.log('✅ XRManager v8 inicializado (single helper)')
+      console.log('✅ XRManager v9 inicializado')
     } catch (e) {
       console.error('Erro WebXR:', e)
     }
@@ -81,7 +81,6 @@ export class XRManager {
   _setupFeatures() {
     const fm = this.xrHelper.baseExperience.featuresManager
 
-    // 1. Pointer Selection — botões GUI funcionam via raio do controle
     try {
       fm.enableFeature(BABYLON.WebXRFeatureName.POINTER_SELECTION, 'stable', {
         xrInput: this.xrHelper.input,
@@ -90,7 +89,6 @@ export class XRManager {
       })
     } catch (e) { console.warn('Pointer selection:', e.message) }
 
-    // 2. Hand Tracking
     try {
       fm.enableFeature(BABYLON.WebXRFeatureName.HAND_TRACKING, 'latest', {
         xrInput:     this.xrHelper.input,
@@ -99,7 +97,6 @@ export class XRManager {
       console.log('✅ Hand tracking ativado')
     } catch (e) { console.log('Hand tracking indisponível:', e.message) }
 
-    // 3. Near Interaction — toque direto em GUI 3D com a mão
     try {
       fm.enableFeature(BABYLON.WebXRFeatureName.NEAR_INTERACTION, 'latest', {
         xrInput: this.xrHelper.input,
@@ -115,7 +112,6 @@ export class XRManager {
       if (state === BABYLON.WebXRState.IN_XR) {
         this.inXR = true
         document.body.classList.add('in-vr')
-        // Passar a câmera XR para o VRUIManager posicionar painéis
         this.vrUI?.onEnterVR(this.xrHelper.baseExperience.camera)
         console.log('✅ Entrou no VR')
       } else if (state === BABYLON.WebXRState.NOT_IN_XR) {
@@ -157,7 +153,7 @@ export class XRManager {
         const hd     = handData[hand]
         if (!hd) return
 
-        this._nearHighlight(center, 0.20, hand)
+        this._nearHighlight(center, NEAR_RADIUS, hand)
 
         if (!hd.pinchActive && dist < PINCH_ON) {
           if (++hd.frames >= 2) {
@@ -225,15 +221,17 @@ export class XRManager {
     }
 
     if (hand === 'right') {
-      const hit = this._nearestMesh(center, 0.20)
+      const hit = this._nearestMesh(center, NEAR_RADIUS)
       if (hit?.metadata?.partKey) {
         const key  = hit.metadata.partKey
+        const meta = this.pumpModel?.meta?.[key]
+        if (meta?.interactive === false) return
         const node = this.pumpModel?.parts?.[key]
         if (node) {
           this._grabState = { key, offset: center.subtract(node.getAbsolutePosition()) }
           this.interaction.select(key)
           this.vrUI?.showPartInfoVR(key)
-          this._toast('✋ ' + (this.pumpModel?.meta?.[key]?.label || key))
+          this._toast('✋ ' + (meta?.label || key))
         }
       }
     }
@@ -261,7 +259,7 @@ export class XRManager {
 
       ctrl.onMotionControllerInitObservable.add(mc => {
         const hand = mc.handedness
-        ctrlState[hand] = { ctrl, grabKey: null, grabOffset: null, triggerDown: false }
+        ctrlState[hand] = { ctrl, mc, grabKey: null, grabOffset: null, triggerDown: false }
 
         // ── TRIGGER → pegar peça ──────────────────────────────────────
         const trigger = mc.getComponent('xr-standard-trigger')
@@ -271,26 +269,35 @@ export class XRManager {
             if (comp.pressed && !cs.triggerDown) {
               cs.triggerDown = true
 
-              const ray = new BABYLON.Ray(BABYLON.Vector3.Zero(), BABYLON.Vector3.Forward())
+              const ray = new BABYLON.Ray(BABYLON.Vector3.Zero(), BABYLON.Vector3.Forward(), RAY_LENGTH)
               ctrl.getWorldPointerRayToRef(ray)
               const pick = this.scene.pickWithRay(ray,
                 m => m.isPickable && m.metadata?.partKey && m.isEnabled()
               )
+
               if (pick?.hit && pick.pickedMesh?.metadata?.partKey) {
-                cs.grabKey    = pick.pickedMesh.metadata.partKey
+                const key  = pick.pickedMesh.metadata.partKey
+                const meta = this.pumpModel?.meta?.[key]
+                if (meta?.interactive === false) return
+                cs.grabKey    = key
                 const node    = this.pumpModel?.parts?.[cs.grabKey]
-                const ctrlPos = ctrl.pointer?.position || ctrl.grip?.position
+                const ctrlPos = this._getCtrlPos(ctrl)
                 if (node && ctrlPos) {
                   cs.grabOffset = ctrlPos.subtract(node.getAbsolutePosition())
+                  this._hapticPulse(ctrl, 0.4, 80)
                 }
                 this.interaction.select(cs.grabKey)
                 this.vrUI?.showPartInfoVR(cs.grabKey)
+                this._toast('✋ ' + (meta?.label || key))
               }
             } else if (!comp.pressed && cs.triggerDown) {
               cs.triggerDown = false
               if (cs.grabKey) {
                 const snapped = this.assembly.trySnap(cs.grabKey)
-                if (snapped) this._toast('✅ Encaixado!')
+                if (snapped) {
+                  this._toast('✅ Encaixado!')
+                  this._hapticPulse(ctrl, 0.8, 150)
+                }
                 this.interaction.deselect()
                 cs.grabKey = null; cs.grabOffset = null
               }
@@ -301,7 +308,7 @@ export class XRManager {
             const cs = ctrlState[hand]
             if (!cs?.grabKey || !cs.grabOffset) return
             const node    = this.pumpModel?.parts?.[cs.grabKey]
-            const ctrlPos = ctrl.pointer?.position || ctrl.grip?.position
+            const ctrlPos = this._getCtrlPos(ctrl)
             if (node && ctrlPos) {
               const targetWorld = ctrlPos.subtract(cs.grabOffset)
               node.position = this._worldToLocal(targetWorld, node)
@@ -320,9 +327,10 @@ export class XRManager {
 
           grip.onButtonStateChangedObservable.add(comp => {
             const root    = this.pumpModel?.rootNode
-            const ctrlPos = ctrl.grip?.position || ctrl.pointer?.position
+            const ctrlPos = this._getCtrlPos(ctrl)
             if (comp.pressed && root && ctrlPos) {
               grabOffset = ctrlPos.subtract(root.position)
+              this._hapticPulse(ctrl, 0.3, 60)
             } else {
               grabOffset = null
             }
@@ -331,7 +339,7 @@ export class XRManager {
           const gripObs = this.scene.onBeforeRenderObservable.add(() => {
             if (!grabOffset) return
             const root    = this.pumpModel?.rootNode
-            const ctrlPos = ctrl.grip?.position || ctrl.pointer?.position
+            const ctrlPos = this._getCtrlPos(ctrl)
             if (root && ctrlPos) root.position = ctrlPos.subtract(grabOffset)
           })
           ctrl.onDisposeObservable?.add(() => {
@@ -349,16 +357,25 @@ export class XRManager {
             } else {
               this.assembly.explodir(true); this._toast('💥 Explodindo...')
             }
+            this._hapticPulse(ctrl, 0.3, 60)
           })
         }
 
-        // ── B / Y → próximo passo guiado ─────────────────────────────
+        // ── B / Y → cinemática ou próximo passo ──────────────────────
         const btnBY = mc.getComponent('b-button') || mc.getComponent('y-button')
         if (btnBY) {
           btnBY.onButtonStateChangedObservable.add(comp => {
             if (!comp.pressed) return
-            this.assembly.guidedAdvance()
-            this._toast('📋 Próximo passo')
+            if (this.assembly.modo === 'guiado') {
+              this.assembly.guidedAdvance()
+              this._toast('📋 Próximo passo')
+            } else if (this.anim && !this.anim.isPlaying) {
+              this._toast('🎬 Cinemática...')
+              this.anim.playDisassembly((key, i, total) => {
+                this._toast(`🔧 ${i+1}/${total}`)
+              })
+            }
+            this._hapticPulse(ctrl, 0.3, 60)
           })
         }
 
@@ -450,10 +467,26 @@ export class XRManager {
   // ══════════════════════════════════════════════════════════════════════
   // HELPERS
   // ══════════════════════════════════════════════════════════════════════
+  _getCtrlPos(ctrl) {
+    return ctrl.grip?.getAbsolutePosition?.()
+      || ctrl.pointer?.getAbsolutePosition?.()
+      || ctrl.rootMesh?.getAbsolutePosition?.()
+      || null
+  }
+
   _worldToLocal(worldPos, node) {
     if (!node.parent) return worldPos.clone()
     const invParent = BABYLON.Matrix.Invert(node.parent.getWorldMatrix())
     return BABYLON.Vector3.TransformCoordinates(worldPos, invParent)
+  }
+
+  _hapticPulse(ctrl, intensity, durationMs) {
+    try {
+      const gamepad = ctrl.inputSource?.gamepad
+      const actuator = gamepad?.hapticActuators?.[0]
+        || gamepad?.vibrationActuator
+      actuator?.pulse?.(intensity, durationMs)
+    } catch {}
   }
 
   _jPos(joint) {
