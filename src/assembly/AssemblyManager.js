@@ -4,41 +4,48 @@
 import * as BABYLON from '@babylonjs/core'
 import { MONTAGEM_SEQ, DESMONTAGEM_SEQ, SNAP_DIST } from '../utils/constants.js'
 
-// Offsets da vista explodida (posição relativa ao originPos)
+// Offsets da vista explodida — direções radiais variadas para realismo
 const EXPLODE = {
-  support               : new BABYLON.Vector3(  0.000,  0.00,  0.00),
-  motor_body            : new BABYLON.Vector3(  0.000,  0.00,  1.80),
+  // Base fixa — âncora da explosão
+  support               : new BABYLON.Vector3(  0.00,  0.00,  0.00),
 
-  // Hidráulico — Z negativo
-  pump_casing           : new BABYLON.Vector3(  0.048,  0.00, -0.55),
-  pump_impeller         : new BABYLON.Vector3(  0.048,  0.00, -0.85),
-  wear_ring             : new BABYLON.Vector3(  0.048,  0.00, -1.05),
-  wear_ring_2           : new BABYLON.Vector3(  0.048,  0.00, -1.25),
+  // Motor — recua ao longo do eixo + leve elevação
+  motor_body            : new BABYLON.Vector3(  0.00,  0.15,  1.80),
 
-  // Vedação — Z negativo
-  seal_chamber          : new BABYLON.Vector3(  0.048,  0.00, -0.45),
-  pump_lantern_ring     : new BABYLON.Vector3(  0.048,  0.00, -0.60),
-  pump_packing_set      : new BABYLON.Vector3(  0.048,  0.00, -0.70),
-  pump_packing_set_2    : new BABYLON.Vector3(  0.048,  0.00, -0.78),
-  pump_packing_set_3    : new BABYLON.Vector3(  0.048,  0.00, -0.86),
-  pump_packing_set_4    : new BABYLON.Vector3(  0.048,  0.00, -0.94),
-  pump_packing_set_5    : new BABYLON.Vector3(  0.048,  0.00, -1.02),
-  pump_packing_set_6    : new BABYLON.Vector3(  0.048,  0.00, -1.10),
-  pump_packing_set_7    : new BABYLON.Vector3(  0.048,  0.00, -1.18),
-  pump_packing_set_8    : new BABYLON.Vector3(  0.048,  0.00, -1.26),
-  pump_packing_gland    : new BABYLON.Vector3(  0.048,  0.00, -0.32),
+  // Hidráulico — sai para frente e levemente para baixo/lado
+  pump_casing           : new BABYLON.Vector3(  0.00, -0.20, -0.70),
+  pump_impeller         : new BABYLON.Vector3(  0.15, -0.35, -1.00),
+  wear_ring             : new BABYLON.Vector3( -0.25, -0.15, -1.20),
+  wear_ring_2           : new BABYLON.Vector3(  0.25, -0.15, -1.40),
 
-  // Mancal — sobe
-  house_bearing         : new BABYLON.Vector3(  0.048,  0.50,  0.00),
-  shaft                 : new BABYLON.Vector3(  0.048,  0.65,  0.00),
+  // Vedação — desce e abre em leque radial
+  seal_chamber          : new BABYLON.Vector3(  0.00,  0.30, -0.50),
+  pump_lantern_ring     : new BABYLON.Vector3(  0.20,  0.25, -0.65),
+  pump_packing_set      : new BABYLON.Vector3( -0.30, -0.25, -0.75),
+  pump_packing_set_2    : new BABYLON.Vector3( -0.25, -0.30, -0.83),
+  pump_packing_set_3    : new BABYLON.Vector3( -0.20, -0.35, -0.91),
+  pump_packing_set_4    : new BABYLON.Vector3( -0.15, -0.38, -0.99),
+  pump_packing_set_5    : new BABYLON.Vector3( -0.10, -0.40, -1.07),
+  pump_packing_set_6    : new BABYLON.Vector3( -0.05, -0.42, -1.15),
+  pump_packing_set_7    : new BABYLON.Vector3(  0.00, -0.43, -1.23),
+  pump_packing_set_8    : new BABYLON.Vector3(  0.05, -0.44, -1.31),
+  pump_packing_gland    : new BABYLON.Vector3(  0.30,  0.10, -0.40),
 
-  // Transmissão — Z positivo bem espaçados
-  bearing_cover         : new BABYLON.Vector3(  0.048,  0.00,  0.55),
-  bearing_cover_2       : new BABYLON.Vector3(  0.048,  0.00,  0.70),
-  pump_coupling         : new BABYLON.Vector3(  0.000,  0.00,  0.85),
-  coupling              : new BABYLON.Vector3(  0.000,  0.00,  1.05),
-  coupling_2            : new BABYLON.Vector3(  0.000,  0.00,  1.25),
-  pump_protection       : new BABYLON.Vector3(  0.000,  0.00,  1.45),
+  // Mancal — sobe e abre lateralmente
+  house_bearing         : new BABYLON.Vector3( -0.20,  0.55,  0.00),
+  shaft                 : new BABYLON.Vector3(  0.00,  0.75,  0.10),
+
+  // Tampas rolamento — saem lateralmente em direções opostas
+  bearing_cover         : new BABYLON.Vector3(  0.35,  0.30,  0.50),
+  bearing_cover_2       : new BABYLON.Vector3( -0.35,  0.30,  0.65),
+
+  // Acoplamento — abre ao longo do eixo com separação radial
+  pump_coupling         : new BABYLON.Vector3( -0.15, -0.20,  0.85),
+  coupling              : new BABYLON.Vector3(  0.00,  0.30,  1.05),
+  coupling_2            : new BABYLON.Vector3(  0.15, -0.20,  1.25),
+
+  // Proteção — sobe como uma tampa removida
+  pump_protection       : new BABYLON.Vector3(  0.00,  0.50,  1.45),
 }
 
 export class AssemblyManager {
@@ -120,7 +127,7 @@ export class AssemblyManager {
   }
 
   // ── Snap ────────────────────────────────────────────────────────────────
-  trySnap(key) {
+  trySnap(key, snapDist = SNAP_DIST) {
     const node   = this.pumpModel.parts[key]
     const meta   = this.pumpModel.meta?.[key]
     if (!node || meta?.interactive === false) return false
@@ -129,7 +136,7 @@ export class AssemblyManager {
     // Comparar posição LOCAL diretamente
     const dist = BABYLON.Vector3.Distance(node.position, origin)
 
-    if (dist < SNAP_DIST) {
+    if (dist < snapDist) {
       this._animTo(node, origin.clone(), 220)
       this.montado.add(key)
       this._calcScore(key, true)

@@ -1,11 +1,38 @@
 /**
- * VRUIManager v3 — Painéis 3D completos para Meta Quest
- * Etapa A: Painel de modos flutuante
- * Etapa B: Painel de info da peça
- * Etapa C: Integração com hand tracking
+ * VRUIManager v4 — Design alinhado ao desktop
+ * - Cores/tipografia iguais ao HTML (glassmorphism, accent cyan)
+ * - Look-at manual em vez de billboardMode (corrige clique nos botões)
+ * - Painéis: top bar + modos + toolbar + info + step
  */
 import * as BABYLON from '@babylonjs/core'
 import * as GUI     from '@babylonjs/gui'
+
+// ── Paleta idêntica ao index.html ──────────────────────────────────────────
+const C = {
+  bg:       '#060810',
+  surface:  '#0c1018',
+  surface2: '#111822',
+  border:   '#1a2235',
+  borderH:  '#253050',
+  accent:   '#00c8f0',
+  accent2:  '#f06000',
+  success:  '#00e87a',
+  warn:     '#f0c000',
+  danger:   '#ff4060',
+  text:     '#d0dce8',
+  text2:    '#8899aa',
+  dim:      '#506070',
+  glass:    'rgba(8,12,20,0.92)',
+}
+
+const GRUPO_COR = {
+  hidraulico:  C.accent,
+  transmissao: C.accent2,
+  mancal:      '#A78BFA',
+  vedacao:     C.success,
+  motor:       C.warn,
+  estrutura:   C.dim,
+}
 
 export class VRUIManager {
   constructor(scene, assembly, pumpModel) {
@@ -15,6 +42,7 @@ export class VRUIManager {
     this._panels   = {}
     this._inVR     = false
     this._modoAtivo = 'visualizacao'
+    this._lookObs   = null
   }
 
   init() {
@@ -23,355 +51,417 @@ export class VRUIManager {
     this._buildStepPanel()
     this._buildToolbar()
     this._bindCallbacks()
-    this._hideAllVR()  // esconder até entrar no VR
+    this._hideAllVR()
   }
 
-  // ── Chamado pelo XRManager quando entra/sai do VR ────────────────────────
-  // xrCamera: a câmera ativa do WebXR (não a orbital do desktop)
   onEnterVR(xrCamera = null) {
     this._inVR    = true
     this._xrCamera = xrCamera
     this._showAllVR()
-    // Reposicionar painéis na frente do usuário usando a câmera XR
     this._repositionPanels()
+    this._startLookAt()
   }
 
   onExitVR() {
     this._inVR = false
     this._xrCamera = null
+    this._stopLookAt()
     this._hideAllVR()
   }
 
-  // ── ETAPA A — Painel principal de modos ──────────────────────────────────
+  // ══════════════════════════════════════════════════════════════════════
+  // PAINEL PRINCIPAL (modos + título) — estilo desktop
+  // ══════════════════════════════════════════════════════════════════════
   _buildMainPanel() {
     const plane = BABYLON.MeshBuilder.CreatePlane('vr_main',
-      { width: 0.55, height: 0.70 }, this.scene)
-    plane.billboardMode = BABYLON.Mesh.BILLBOARDMODE_Y
-    plane.isPickable    = true
+      { width: 0.60, height: 0.80 }, this.scene)
+    plane.isPickable = true
     plane.renderingGroupId = 1
 
-    const tex = GUI.AdvancedDynamicTexture.CreateForMesh(plane, 550, 700)
+    const tex = GUI.AdvancedDynamicTexture.CreateForMesh(plane, 600, 800)
 
-    // Fundo
+    // Fundo glass
     const bg = new GUI.Rectangle()
-    bg.background   = 'rgba(8,12,24,0.96)'
-    bg.cornerRadius = 20
-    bg.thickness    = 2
-    bg.color        = '#00c8f0'
+    bg.background   = C.glass
+    bg.cornerRadius = 16
+    bg.thickness    = 1
+    bg.color        = C.border
     bg.width = '100%'; bg.height = '100%'
     tex.addControl(bg)
 
+    // Top bar
+    const topbar = new GUI.Rectangle()
+    topbar.height = '80px'
+    topbar.width = '100%'
+    topbar.thickness = 0
+    topbar.background = C.surface
+    topbar.cornerRadius = 16
+    topbar.verticalAlignment = GUI.Control.VERTICAL_ALIGNMENT_TOP
+    bg.addControl(topbar)
+
+    const senaiBox = new GUI.Rectangle()
+    senaiBox.width = '100px'; senaiBox.height = '48px'
+    senaiBox.background = '#ffffff'
+    senaiBox.cornerRadius = 6; senaiBox.thickness = 0
+    senaiBox.left = '16px'
+    senaiBox.horizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_LEFT
+    topbar.addControl(senaiBox)
+
+    const senaiTxt = new GUI.TextBlock()
+    senaiTxt.text = 'SENAI'
+    senaiTxt.color = '#000'; senaiTxt.fontSize = 26
+    senaiTxt.fontWeight = 'bold'
+    senaiBox.addControl(senaiTxt)
+
+    const titleCol = new GUI.StackPanel()
+    titleCol.isVertical = true
+    titleCol.width = '340px'; titleCol.height = '60px'
+    titleCol.left = '130px'
+    titleCol.horizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_LEFT
+    topbar.addControl(titleCol)
+
+    const unit = new GUI.TextBlock()
+    unit.text = 'MECATRÔNICA · VR'
+    unit.color = C.dim; unit.fontSize = 14
+    unit.height = '18px'
+    unit.fontWeight = 'bold'
+    unit.textHorizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_LEFT
+    titleCol.addControl(unit)
+
+    const titleT = new GUI.TextBlock()
+    titleT.text = 'BOMBA CENTRÍFUGA'
+    titleT.color = C.accent; titleT.fontSize = 22
+    titleT.height = '26px'
+    titleT.fontWeight = 'bold'
+    titleT.textHorizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_LEFT
+    titleCol.addControl(titleT)
+
+    // Progress strip
+    const progWrap = new GUI.Rectangle()
+    progWrap.height = '44px'; progWrap.width = '100%'
+    progWrap.top = '82px'
+    progWrap.thickness = 0
+    progWrap.background = C.surface2
+    progWrap.verticalAlignment = GUI.Control.VERTICAL_ALIGNMENT_TOP
+    bg.addControl(progWrap)
+
+    const progLabel = new GUI.TextBlock()
+    progLabel.text = 'MONTAGEM'
+    progLabel.color = C.dim; progLabel.fontSize = 12
+    progLabel.width = '100px'; progLabel.height = '16px'
+    progLabel.left = '18px'
+    progLabel.fontWeight = 'bold'
+    progLabel.horizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_LEFT
+    progLabel.textHorizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_LEFT
+    progWrap.addControl(progLabel)
+
+    const progTrack = new GUI.Rectangle()
+    progTrack.width = '280px'; progTrack.height = '6px'
+    progTrack.left = '130px'
+    progTrack.thickness = 0
+    progTrack.background = C.border
+    progTrack.cornerRadius = 3
+    progTrack.horizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_LEFT
+    progWrap.addControl(progTrack)
+
+    const progBar = new GUI.Rectangle()
+    progBar.width = '0%'; progBar.height = '100%'
+    progBar.thickness = 0
+    progBar.background = C.accent
+    progBar.cornerRadius = 3
+    progBar.horizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_LEFT
+    progTrack.addControl(progBar)
+
+    const progPct = new GUI.TextBlock()
+    progPct.text = '0%'
+    progPct.color = C.text; progPct.fontSize = 16
+    progPct.width = '50px'; progPct.height = '20px'
+    progPct.left = '430px'
+    progPct.fontWeight = 'bold'
+    progPct.horizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_LEFT
+    progWrap.addControl(progPct)
+
+    // Content stack
     const stack = new GUI.StackPanel()
-    stack.isVertical  = true
-    stack.paddingTop  = '16px'
-    stack.paddingLeft = stack.paddingRight = '14px'
-    stack.width = '100%'
+    stack.isVertical = true
+    stack.width = '92%'
+    stack.top = '140px'
+    stack.verticalAlignment = GUI.Control.VERTICAL_ALIGNMENT_TOP
     bg.addControl(stack)
 
-    // Título
-    const title = new GUI.TextBlock()
-    title.text      = 'BOMBA CENTRÍFUGA'
-    title.color     = '#00c8f0'
-    title.fontSize  = 32
-    title.height    = '36px'
-    title.fontWeight = 'bold'
-    title.textHorizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_CENTER
-    stack.addControl(title)
+    // Label modos
+    const modoLbl = new GUI.TextBlock()
+    modoLbl.text = 'MODO DE OPERAÇÃO'
+    modoLbl.color = C.dim; modoLbl.fontSize = 13
+    modoLbl.height = '20px'
+    modoLbl.fontWeight = 'bold'
+    modoLbl.textHorizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_LEFT
+    stack.addControl(modoLbl)
 
-    const sub = new GUI.TextBlock()
-    sub.text     = 'SENAI · Mecatrônica'
-    sub.color    = '#5a6a80'
-    sub.fontSize = 20
-    sub.height   = '24px'
-    stack.addControl(sub)
+    const spacer1 = new GUI.Rectangle()
+    spacer1.height = '8px'; spacer1.thickness = 0
+    stack.addControl(spacer1)
 
-    // Separador
-    const sep = new GUI.Rectangle()
-    sep.height = '2px'; sep.width = '88%'
-    sep.background = '#00c8f0'; sep.thickness = 0
-    sep.paddingTop = '8px'; sep.paddingBottom = '8px'
-    stack.addControl(sep)
-
-    // Botões de modo
+    // Botões de modo — estilo pill
     const modos = [
-      { id: 'visualizacao', label: '👁  Visualizar',  cor: '#00c8f0' },
-      { id: 'livre',        label: '🔧  Livre',        cor: '#1A2030' },
-      { id: 'guiado',       label: '📋  Guiado',       cor: '#1A2030' },
-      { id: 'avaliacao',    label: '🏆  Avaliação',    cor: '#1A2030' },
+      { id: 'visualizacao', label: 'Visualizar' },
+      { id: 'livre',        label: 'Livre'      },
+      { id: 'guiado',       label: 'Guiado'     },
+      { id: 'avaliacao',    label: 'Avaliação'  },
     ]
 
-    modos.forEach(({ id, label, cor }) => {
-      const btn = GUI.Button.CreateSimpleButton(`vrbtn_${id}`, label)
-      btn.width           = '96%'
-      btn.height          = '78px'
-      btn.color           = '#E8EDF5'
-      btn.fontSize        = 28
-      btn.background      = id === 'visualizacao' ? '#00c8f0' : '#1A2030'
-      btn.cornerRadius    = 10
-      btn.thickness       = 1
-      btn.paddingTop = btn.paddingBottom = '4px'
-      btn.isHitTestVisible = true
-
-      btn.onPointerEnterObservable.add(() => {
-        if (btn.background !== '#00c8f0') btn.background = '#253045'
+    modos.forEach(({ id, label }) => {
+      const btn = this._mkButton(`vrbtn_${id}`, label, {
+        w: '100%', h: '54px',
+        bg: id === 'visualizacao' ? C.accent : C.surface2,
+        color: id === 'visualizacao' ? C.bg : C.text2,
+        fontSize: 22,
+        border: C.border,
       })
-      btn.onPointerOutObservable.add(() => {
-        const ativo = this._modoAtivo === id
-        btn.background = ativo ? '#00c8f0' : '#1A2030'
-      })
-      btn.onPointerUpObservable.add(() => {
-        this._setModoVR(id)
-      })
-
+      btn.onPointerClickObservable.add(() => this._setModoVR(id))
+      btn.onPointerUpObservable.add(() => this._setModoVR(id))
       stack.addControl(btn)
       this._panels[`vrbtn_${id}`] = btn
     })
 
-    // Separador
-    const sep2 = new GUI.Rectangle()
-    sep2.height = '1px'; sep2.width = '88%'
-    sep2.background = '#253045'; sep2.thickness = 0
-    sep2.paddingTop = sep2.paddingBottom = '4px'
-    stack.addControl(sep2)
+    const spacer2 = new GUI.Rectangle()
+    spacer2.height = '12px'; spacer2.thickness = 0
+    stack.addControl(spacer2)
 
-    // Botões de ação
+    // Divider
+    const div = new GUI.Rectangle()
+    div.height = '1px'; div.width = '100%'
+    div.thickness = 0; div.background = C.border
+    stack.addControl(div)
+
+    const spacer3 = new GUI.Rectangle()
+    spacer3.height = '12px'; spacer3.thickness = 0
+    stack.addControl(spacer3)
+
+    // Label ações
+    const acaoLbl = new GUI.TextBlock()
+    acaoLbl.text = 'AÇÕES RÁPIDAS'
+    acaoLbl.color = C.dim; acaoLbl.fontSize = 13
+    acaoLbl.height = '20px'
+    acaoLbl.fontWeight = 'bold'
+    acaoLbl.textHorizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_LEFT
+    stack.addControl(acaoLbl)
+
+    const spacer4 = new GUI.Rectangle()
+    spacer4.height = '6px'; spacer4.thickness = 0
+    stack.addControl(spacer4)
+
     const acoes = [
-      { id: 'explodir',  label: '💥  Explodir',  bg: '#1A1A2E', cor: '#00C8FF' },
-      { id: 'montar',    label: '🔩  Montar',     bg: '#1A1A2E', cor: '#10d98a' },
-      { id: 'reiniciar', label: '↺  Reiniciar',  bg: '#1A1508', cor: '#f5a623' },
+      { id: 'explodir',  label: 'Explodir',  color: C.accent  },
+      { id: 'montar',    label: 'Montar',    color: C.success },
+      { id: 'reiniciar', label: 'Reiniciar', color: C.warn    },
     ]
 
-    acoes.forEach(({ id, label, bg, cor }) => {
-      const btn = GUI.Button.CreateSimpleButton(`vrbtn_${id}`, label)
-      btn.width        = '96%'
-      btn.height       = '62px'
-      btn.color        = cor
-      btn.fontSize     = 26
-      btn.background   = bg
-      btn.cornerRadius = 10
-      btn.thickness    = 1
-      btn.paddingTop = btn.paddingBottom = '3px'
-      btn.isHitTestVisible = true
-
-      btn.onPointerUpObservable.add(() => {
+    acoes.forEach(({ id, label, color }) => {
+      const btn = this._mkButton(`vrbtn_${id}`, label, {
+        w: '100%', h: '48px',
+        bg: C.surface2, color, fontSize: 20, border: color,
+      })
+      const fn = () => {
         if (id === 'explodir')  this.assembly.explodir(true)
         if (id === 'montar')    this.assembly.montar(true)
         if (id === 'reiniciar') this.assembly.reset()
-      })
-
+      }
+      btn.onPointerClickObservable.add(fn)
+      btn.onPointerUpObservable.add(fn)
       stack.addControl(btn)
     })
 
     this._panels.mainPlane = plane
     this._panels.mainTex   = tex
+    this._panels.progBar   = progBar
+    this._panels.progPct   = progPct
   }
 
-  // ── ETAPA B — Painel de info da peça ─────────────────────────────────────
+  // ══════════════════════════════════════════════════════════════════════
+  // PAINEL INFO — estilo desktop
+  // ══════════════════════════════════════════════════════════════════════
   _buildInfoPanel() {
     const plane = BABYLON.MeshBuilder.CreatePlane('vr_info',
-      { width: 0.50, height: 0.65 }, this.scene)
-    plane.billboardMode = BABYLON.Mesh.BILLBOARDMODE_Y
-    plane.isPickable    = true   // necessário para o botão "Fechar" responder no VR
+      { width: 0.55, height: 0.70 }, this.scene)
+    plane.isPickable = true
     plane.renderingGroupId = 1
     plane.setEnabled(false)
 
-    const tex = GUI.AdvancedDynamicTexture.CreateForMesh(plane, 500, 650)
+    const tex = GUI.AdvancedDynamicTexture.CreateForMesh(plane, 550, 700)
 
     const bg = new GUI.Rectangle()
-    bg.background   = 'rgba(6,13,24,0.97)'
-    bg.cornerRadius = 18
-    bg.thickness    = 2
-    bg.color        = '#00C8FF'
+    bg.background   = C.glass
+    bg.cornerRadius = 16
+    bg.thickness    = 1
+    bg.color        = C.border
     bg.width = '100%'; bg.height = '100%'
     tex.addControl(bg)
 
-    const stack = new GUI.StackPanel()
-    stack.paddingTop = stack.paddingLeft = stack.paddingRight = '14px'
-    stack.width = '100%'
-    bg.addControl(stack)
+    // Header com barra lateral colorida
+    const header = new GUI.Rectangle()
+    header.height = '120px'; header.width = '100%'
+    header.thickness = 0; header.background = C.surface
+    header.verticalAlignment = GUI.Control.VERTICAL_ALIGNMENT_TOP
+    bg.addControl(header)
 
-    // Badge de grupo
+    const sidebar = new GUI.Rectangle()
+    sidebar.width = '5px'; sidebar.height = '100%'
+    sidebar.thickness = 0; sidebar.background = C.accent
+    sidebar.horizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_LEFT
+    header.addControl(sidebar)
+
+    const hStack = new GUI.StackPanel()
+    hStack.isVertical = true
+    hStack.width = '90%'; hStack.left = '18px'
+    hStack.horizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_LEFT
+    header.addControl(hStack)
+
+    const sp0 = new GUI.Rectangle(); sp0.height='14px'; sp0.thickness=0; hStack.addControl(sp0)
+
     const badge = new GUI.TextBlock()
-    badge.text     = 'COMPONENTE'
-    badge.color    = '#00C8FF'
-    badge.fontSize = 20
-    badge.height   = '22px'
-    badge.fontWeight = 'bold'
-    stack.addControl(badge)
+    badge.text = 'GRUPO'
+    badge.color = C.accent; badge.fontSize = 13
+    badge.height = '18px'; badge.fontWeight = 'bold'
+    badge.textHorizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_LEFT
+    hStack.addControl(badge)
 
-    // Nome da peça
     const nome = new GUI.TextBlock()
-    nome.text        = '—'
-    nome.color       = '#E8EDF5'
-    nome.fontSize    = 34
-    nome.height      = '38px'
-    nome.fontWeight  = 'bold'
-    nome.textWrapping = true
-    stack.addControl(nome)
+    nome.text = '—'
+    nome.color = C.text; nome.fontSize = 28
+    nome.height = '34px'; nome.fontWeight = 'bold'
+    nome.textHorizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_LEFT
+    hStack.addControl(nome)
 
-    // Nome EN
     const en = new GUI.TextBlock()
-    en.text      = '—'
-    en.color     = '#5a6a80'
-    en.fontSize  = 18
-    en.height    = '20px'
-    stack.addControl(en)
+    en.text = '—'
+    en.color = C.dim; en.fontSize = 15
+    en.height = '20px'
+    en.textHorizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_LEFT
+    hStack.addControl(en)
 
-    // Separador
-    const sep = new GUI.Rectangle()
-    sep.height = '2px'; sep.width = '90%'
-    sep.background = '#00C8FF44'; sep.thickness = 0
-    sep.paddingTop = sep.paddingBottom = '6px'
-    stack.addControl(sep)
+    const close = this._mkButton('vr_info_close', '✕', {
+      w: '36px', h: '36px',
+      bg: C.surface2, color: C.text2, fontSize: 18, border: C.border,
+    })
+    close.horizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_RIGHT
+    close.verticalAlignment = GUI.Control.VERTICAL_ALIGNMENT_TOP
+    close.top = '12px'; close.left = '-12px'
+    close.onPointerClickObservable.add(() => plane.setEnabled(false))
+    close.onPointerUpObservable.add(() => plane.setEnabled(false))
+    header.addControl(close)
 
-    // Descrição
+    // Body
+    const body = new GUI.StackPanel()
+    body.isVertical = true
+    body.width = '92%'
+    body.top = '138px'
+    body.verticalAlignment = GUI.Control.VERTICAL_ALIGNMENT_TOP
+    bg.addControl(body)
+
+    const descLbl = this._sectionLabel('DESCRIÇÃO')
+    body.addControl(descLbl)
     const desc = new GUI.TextBlock()
-    desc.text         = '—'
-    desc.color        = '#8a9ab8'
-    desc.fontSize     = 19
-    desc.height       = '100px'
-    desc.textWrapping = true
-    desc.lineSpacing  = '4px'
-    stack.addControl(desc)
+    desc.text = '—'; desc.color = C.text2; desc.fontSize = 16
+    desc.height = '80px'; desc.textWrapping = true; desc.lineSpacing = '4px'
+    desc.textHorizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_LEFT
+    body.addControl(desc)
 
-    // Dados técnicos
-    const dadosLabel = new GUI.TextBlock()
-    dadosLabel.text      = 'DADOS TÉCNICOS'
-    dadosLabel.color     = '#5a6a80'
-    dadosLabel.fontSize  = 16
-    dadosLabel.height    = '18px'
-    dadosLabel.fontWeight = 'bold'
-    stack.addControl(dadosLabel)
+    const funcLbl = this._sectionLabel('FUNÇÃO')
+    body.addControl(funcLbl)
+    const funcao = new GUI.TextBlock()
+    funcao.text = '—'; funcao.color = C.text2; funcao.fontSize = 16
+    funcao.height = '60px'; funcao.textWrapping = true; funcao.lineSpacing = '4px'
+    funcao.textHorizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_LEFT
+    body.addControl(funcao)
 
-    const material = new GUI.TextBlock()
-    material.text        = '—'
-    material.color       = '#E8EDF5'
-    material.fontSize    = 20
-    material.height      = '22px'
-    material.textWrapping = true
-    stack.addControl(material)
+    const tecLbl = this._sectionLabel('DADOS TÉCNICOS')
+    body.addControl(tecLbl)
 
-    const norma = new GUI.TextBlock()
-    norma.text      = '—'
-    norma.color     = '#5a6a80'
-    norma.fontSize  = 18
-    norma.height    = '20px'
-    stack.addControl(norma)
+    const material = this._infoRow('Material', '—')
+    body.addControl(material.row); this._panels.infoMaterial = material.val
+
+    const norma = this._infoRow('Norma', '—')
+    body.addControl(norma.row); this._panels.infoNorma = norma.val
+
+    const ferr = this._infoRow('Ferramenta', '—')
+    body.addControl(ferr.row); this._panels.infoFerr = ferr.val
 
     // Torque highlight
     const torqueBox = new GUI.Rectangle()
-    torqueBox.height      = '60px'
-    torqueBox.width       = '96%'
-    torqueBox.background  = 'rgba(200,16,46,0.10)'
-    torqueBox.cornerRadius = 8
-    torqueBox.thickness   = 1
-    torqueBox.color       = '#00c8f044'
-    torqueBox.paddingTop  = '6px'
-
+    torqueBox.height = '44px'; torqueBox.width = '100%'
+    torqueBox.background = 'rgba(240,192,0,0.10)'
+    torqueBox.cornerRadius = 6; torqueBox.thickness = 1
+    torqueBox.color = C.warn; torqueBox.paddingTop = '6px'
     const torqueText = new GUI.TextBlock()
-    torqueText.text      = '—'
-    torqueText.color     = '#fff'
-    torqueText.fontSize  = 26
+    torqueText.text = 'TORQUE: —'
+    torqueText.color = C.warn; torqueText.fontSize = 18
     torqueText.fontWeight = 'bold'
     torqueBox.addControl(torqueText)
-    stack.addControl(torqueBox)
+    body.addControl(torqueBox)
 
-    // Manutenção
-    const manut = new GUI.TextBlock()
-    manut.text        = '—'
-    manut.color       = '#f5a623'
-    manut.fontSize    = 18
-    manut.height      = '40px'
-    manut.textWrapping = true
-    manut.paddingTop  = '6px'
-    stack.addControl(manut)
-
-    // Botão fechar
-    const close = GUI.Button.CreateSimpleButton('vr_info_close', '✕  Fechar')
-    close.width      = '88%'
-    close.height     = '52px'
-    close.color      = '#E8EDF5'
-    close.background = '#1A2030'
-    close.cornerRadius = 8
-    close.fontSize   = 22
-    close.paddingTop = '8px'
-    close.isHitTestVisible = true
-    close.onPointerUpObservable.add(() => {
-      plane.setEnabled(false)
-      this._panels.infoPlane.setEnabled(false)
-    })
-    stack.addControl(close)
-
-    this._panels.infoPlane    = plane
-    this._panels.infoBadge    = badge
-    this._panels.infoNome     = nome
-    this._panels.infoEn       = en
-    this._panels.infoDesc     = desc
-    this._panels.infoMaterial = material
-    this._panels.infoNorma    = norma
-    this._panels.infoTorque   = torqueText
+    this._panels.infoPlane     = plane
+    this._panels.infoBg        = bg
+    this._panels.infoSidebar   = sidebar
+    this._panels.infoBadge     = badge
+    this._panels.infoNome      = nome
+    this._panels.infoEn        = en
+    this._panels.infoDesc      = desc
+    this._panels.infoFuncao    = funcao
+    this._panels.infoTorque    = torqueText
     this._panels.infoTorqueBox = torqueBox
-    this._panels.infoManut    = manut
   }
 
-  // ── Painel de passo guiado ────────────────────────────────────────────────
+  // ══════════════════════════════════════════════════════════════════════
+  // PAINEL STEP (guiado/avaliação)
+  // ══════════════════════════════════════════════════════════════════════
   _buildStepPanel() {
     const plane = BABYLON.MeshBuilder.CreatePlane('vr_step',
-      { width: 0.50, height: 0.35 }, this.scene)
-    plane.billboardMode = BABYLON.Mesh.BILLBOARDMODE_Y
-    plane.isPickable    = true
+      { width: 0.55, height: 0.30 }, this.scene)
+    plane.isPickable = true
     plane.renderingGroupId = 1
     plane.setEnabled(false)
 
-    const tex = GUI.AdvancedDynamicTexture.CreateForMesh(plane, 500, 350)
+    const tex = GUI.AdvancedDynamicTexture.CreateForMesh(plane, 550, 300)
 
     const bg = new GUI.Rectangle()
-    bg.background   = 'rgba(6,13,24,0.96)'
-    bg.cornerRadius = 16
-    bg.thickness    = 2
-    bg.color        = '#10d98a'
+    bg.background = C.glass; bg.cornerRadius = 16
+    bg.thickness = 1; bg.color = C.success
     bg.width = '100%'; bg.height = '100%'
     tex.addControl(bg)
 
     const stack = new GUI.StackPanel()
-    stack.paddingTop = stack.paddingLeft = stack.paddingRight = '12px'
-    stack.width = '100%'
+    stack.isVertical = true
+    stack.width = '90%'
     bg.addControl(stack)
 
+    const sp = new GUI.Rectangle(); sp.height='14px'; sp.thickness=0; stack.addControl(sp)
+
     const stepLbl = new GUI.TextBlock()
-    stepLbl.text     = 'PASSO 1 / 15'
-    stepLbl.color    = '#10d98a'
-    stepLbl.fontSize = 24
-    stepLbl.height   = '26px'
-    stepLbl.fontWeight = 'bold'
+    stepLbl.text = 'PASSO 1 / 15'
+    stepLbl.color = C.success; stepLbl.fontSize = 14
+    stepLbl.height = '18px'; stepLbl.fontWeight = 'bold'
     stack.addControl(stepLbl)
 
     const stepName = new GUI.TextBlock()
-    stepName.text     = '—'
-    stepName.color    = '#E8EDF5'
-    stepName.fontSize = 30
-    stepName.height   = '34px'
+    stepName.text = '—'; stepName.color = C.text
+    stepName.fontSize = 22; stepName.height = '28px'
     stepName.fontWeight = 'bold'
     stack.addControl(stepName)
 
     const stepDesc = new GUI.TextBlock()
-    stepDesc.text        = 'Selecione e encaixe a peça indicada.'
-    stepDesc.color       = '#5a6a80'
-    stepDesc.fontSize    = 18
-    stepDesc.height      = '52px'
-    stepDesc.textWrapping = true
+    stepDesc.text = 'Selecione e encaixe a peça indicada.'
+    stepDesc.color = C.text2; stepDesc.fontSize = 14
+    stepDesc.height = '42px'; stepDesc.textWrapping = true
     stack.addControl(stepDesc)
 
-    const next = GUI.Button.CreateSimpleButton('vr_next', '▶  Próximo Passo')
-    next.width        = '92%'
-    next.height       = '60px'
-    next.color        = '#0D1117'
-    next.background   = '#10d98a'
-    next.cornerRadius = 10
-    next.fontSize     = 24
-    next.fontWeight   = 'bold'
-    next.isHitTestVisible = true
-    next.onPointerUpObservable.add(() => this.assembly.guidedAdvance())
+    const next = this._mkButton('vr_next', 'Próximo Passo', {
+      w: '100%', h: '44px', bg: C.success, color: C.bg,
+      fontSize: 18, border: C.success,
+    })
+    const advance = () => this.assembly.guidedAdvance()
+    next.onPointerClickObservable.add(advance)
+    next.onPointerUpObservable.add(advance)
     stack.addControl(next)
 
     this._panels.stepPlane = plane
@@ -380,21 +470,20 @@ export class VRUIManager {
     this._panels.stepDesc  = stepDesc
   }
 
-  // ── Toolbar VR — botões rápidos ───────────────────────────────────────────
+  // ══════════════════════════════════════════════════════════════════════
+  // TOOLBAR — botões rápidos inferiores
+  // ══════════════════════════════════════════════════════════════════════
   _buildToolbar() {
-    // Toolbar pequena no pulso esquerdo (wrist-attached em versão futura)
-    // Por ora, painel pequeno flutuante
     const plane = BABYLON.MeshBuilder.CreatePlane('vr_toolbar',
-      { width: 0.45, height: 0.12 }, this.scene)
-    plane.billboardMode = BABYLON.Mesh.BILLBOARDMODE_Y
-    plane.isPickable    = true
+      { width: 0.50, height: 0.10 }, this.scene)
+    plane.isPickable = true
     plane.renderingGroupId = 1
 
-    const tex = GUI.AdvancedDynamicTexture.CreateForMesh(plane, 450, 120)
+    const tex = GUI.AdvancedDynamicTexture.CreateForMesh(plane, 500, 100)
 
     const bg = new GUI.Rectangle()
-    bg.background = 'rgba(8,12,24,0.90)'
-    bg.cornerRadius = 10; bg.thickness = 1; bg.color = '#253045'
+    bg.background = C.glass; bg.cornerRadius = 10
+    bg.thickness = 1; bg.color = C.border
     bg.width = '100%'; bg.height = '100%'
     tex.addControl(bg)
 
@@ -402,21 +491,24 @@ export class VRUIManager {
     row.isVertical = false; row.width = '100%'; row.height = '100%'
     bg.addControl(row)
 
-    const toolBtns = [
-      { label: '💥', fn: () => this.assembly.explodir(true)  },
-      { label: '🔩', fn: () => this.assembly.montar(true)    },
-      { label: '↺',  fn: () => this.assembly.reset()         },
-      { label: '💡', fn: () => this._showHint()               },
-      { label: '🎬', fn: () => this._playCinematic()          },
-      { label: '💧', fn: () => this._toggleFlow()             },
+    const tools = [
+      { label: '💥', tip: 'Explodir',   fn: () => this.assembly.explodir(true)  },
+      { label: '🔩', tip: 'Montar',     fn: () => this.assembly.montar(true)    },
+      { label: '↺',  tip: 'Reset',      fn: () => this.assembly.reset()         },
+      { label: '🎬', tip: 'Cinemática', fn: () => this._playCinematic()          },
+      { label: '💧', tip: 'Fluxo',      fn: () => this._toggleFlow()             },
     ]
 
-    toolBtns.forEach(({ label, fn }) => {
+    tools.forEach(({ label, fn }) => {
       const btn = GUI.Button.CreateSimpleButton('tb_' + label, label)
-      btn.width = '70px'; btn.height = '70px'
-      btn.color = '#E8EDF5'; btn.background = 'transparent'
-      btn.fontSize = 32; btn.thickness = 0
+      btn.width = '80px'; btn.height = '80px'
+      btn.color = C.text; btn.background = 'transparent'
+      btn.fontSize = 30; btn.thickness = 0
       btn.isHitTestVisible = true
+      btn.isPointerBlocker = true
+      btn.onPointerEnterObservable.add(() => btn.background = C.surface2)
+      btn.onPointerOutObservable.add(() => btn.background = 'transparent')
+      btn.onPointerClickObservable.add(fn)
       btn.onPointerUpObservable.add(fn)
       row.addControl(btn)
     })
@@ -424,121 +516,184 @@ export class VRUIManager {
     this._panels.toolbarPlane = plane
   }
 
-  // ── Mostrar info de peça no VR ────────────────────────────────────────────
+  // ══════════════════════════════════════════════════════════════════════
+  // MOSTRAR INFO NO VR
+  // ══════════════════════════════════════════════════════════════════════
   showPartInfoVR(key) {
     if (!this._inVR) return
     const baseKey = key.replace(/_\d+$/, '')
     const meta    = this.pumpModel.meta?.[baseKey] || this.pumpModel.meta?.[key]
     if (!meta) return
 
-    const GRUPO_COR = {
-      hidraulico: '#00c8f0', transmissao: '#f06000',
-      mancal: '#A78BFA',    vedacao: '#00e87a',
-      motor: '#f0c000',     estrutura: '#506070',
-    }
-    const cor = GRUPO_COR[meta.grupo] || '#00C8FF'
+    const cor = GRUPO_COR[meta.grupo] || C.accent
 
-    // Atualizar textos
-    if (this._panels.infoBadge)    this._panels.infoBadge.text    = (meta.grupo || 'componente').toUpperCase()
-    if (this._panels.infoBadge)    this._panels.infoBadge.color   = cor
-    if (this._panels.infoNome)     this._panels.infoNome.text     = meta.label || key
-    if (this._panels.infoNome)     this._panels.infoNome.color    = cor
-    if (this._panels.infoEn)       this._panels.infoEn.text       = meta.en || ''
-    if (this._panels.infoDesc)     this._panels.infoDesc.text     = meta.desc || ''
-    if (this._panels.infoMaterial) this._panels.infoMaterial.text = meta.material || '—'
-    if (this._panels.infoNorma)    this._panels.infoNorma.text    = meta.norma || '—'
-    if (this._panels.infoManut)    this._panels.infoManut.text    = '⏱ ' + (meta.intervalo || '—')
+    if (this._panels.infoBadge)   { this._panels.infoBadge.text = (meta.grupo || 'componente').toUpperCase(); this._panels.infoBadge.color = cor }
+    if (this._panels.infoNome)      this._panels.infoNome.text = meta.label || key
+    if (this._panels.infoEn)        this._panels.infoEn.text = meta.en || ''
+    if (this._panels.infoDesc)      this._panels.infoDesc.text = meta.desc || '—'
+    if (this._panels.infoFuncao)    this._panels.infoFuncao.text = meta.funcao || '—'
+    if (this._panels.infoMaterial)  this._panels.infoMaterial.text = meta.material || '—'
+    if (this._panels.infoNorma)     this._panels.infoNorma.text = meta.norma || '—'
+    if (this._panels.infoFerr)      this._panels.infoFerr.text = meta.ferramenta || '—'
+    if (this._panels.infoSidebar)   this._panels.infoSidebar.background = cor
 
-    if (this._panels.infoTorque) {
-      const temTorque = meta.torque && meta.torque !== '—'
-      this._panels.infoTorque.text = temTorque
-        ? `TORQUE: ${meta.torque}`
-        : `FERRAMENTA: ${meta.ferramenta || '—'}`
-      if (this._panels.infoTorqueBox) {
-        this._panels.infoTorqueBox.color      = temTorque ? '#00c8f044' : '#00C8FF22'
-        this._panels.infoTorqueBox.background = temTorque ? 'rgba(200,16,46,0.10)' : 'rgba(0,200,255,0.05)'
-      }
-    }
+    const temTorque = meta.torque && meta.torque !== '—'
+    if (this._panels.infoTorque)    this._panels.infoTorque.text = temTorque ? `TORQUE: ${meta.torque}` : 'Sem especificação de torque'
+    if (this._panels.infoTorqueBox) this._panels.infoTorqueBox.isVisible = temTorque
 
-    // Posicionar painel à direita do painel principal
-    const mainPos = this._panels.mainPlane?.position
-    if (mainPos) {
+    // Posicionar ao lado direito do painel principal
+    const main = this._panels.mainPlane
+    if (main) {
       this._panels.infoPlane.position = new BABYLON.Vector3(
-        mainPos.x + 0.60, mainPos.y, mainPos.z
+        main.position.x + 0.70,
+        main.position.y,
+        main.position.z
       )
     }
-
-    // Atualizar borda
-    const bg = this._panels.infoPlane?.getChildren?.()[0]
-
-    this._panels.infoPlane?.setEnabled(true)
+    this._panels.infoPlane.setEnabled(true)
   }
 
-  // ── Reposicionar painéis na frente do usuário ─────────────────────────────
+  // ══════════════════════════════════════════════════════════════════════
+  // POSICIONAMENTO + LOOK-AT MANUAL
+  // ══════════════════════════════════════════════════════════════════════
   _repositionPanels() {
-    // Em VR, usar a câmera XR (não a orbital). Fallback para activeCamera.
     const cam = this._xrCamera || this.scene.activeCamera
     if (!cam) return
+    const fwd  = cam.getForwardRay(1).direction
+    const base = cam.position.clone()
 
-    const forward = cam.getForwardRay(1).direction
-    const base    = cam.position.clone()
-
-    // Painel principal — à esquerda
+    // Main (esquerda)
     if (this._panels.mainPlane) {
       this._panels.mainPlane.position = new BABYLON.Vector3(
-        base.x + forward.x * 1.2 - 0.35,
+        base.x + fwd.x * 1.20 - 0.40,
         base.y - 0.10,
-        base.z + forward.z * 1.2
+        base.z + fwd.z * 1.20,
       )
     }
 
-    // Painel de passo — à direita
+    // Step (direita)
     if (this._panels.stepPlane) {
       this._panels.stepPlane.position = new BABYLON.Vector3(
-        base.x + forward.x * 1.2 + 0.35,
-        base.y - 0.10,
-        base.z + forward.z * 1.2
+        base.x + fwd.x * 1.20 + 0.40,
+        base.y + 0.20,
+        base.z + fwd.z * 1.20,
       )
     }
 
-    // Toolbar — abaixo do painel principal
+    // Toolbar (baixo centro)
     if (this._panels.toolbarPlane) {
       this._panels.toolbarPlane.position = new BABYLON.Vector3(
-        base.x + forward.x * 1.0,
-        base.y - 0.45,
-        base.z + forward.z * 1.0
+        base.x + fwd.x * 1.00,
+        base.y - 0.50,
+        base.z + fwd.z * 1.00,
       )
     }
   }
 
-  // ── Helpers ───────────────────────────────────────────────────────────────
+  _startLookAt() {
+    this._stopLookAt()
+    // Orientar painéis para a câmera sem billboardMode (melhora o picking)
+    this._lookObs = this.scene.onBeforeRenderObservable.add(() => {
+      const cam = this._xrCamera || this.scene.activeCamera
+      if (!cam) return
+      const camPos = cam.position
+      for (const name of ['mainPlane', 'infoPlane', 'stepPlane', 'toolbarPlane']) {
+        const p = this._panels[name]
+        if (!p || !p.isEnabled()) continue
+        // Virar o plano para a câmera no eixo Y
+        const dx = camPos.x - p.position.x
+        const dz = camPos.z - p.position.z
+        p.rotation.y = Math.atan2(dx, dz)
+      }
+    })
+  }
+
+  _stopLookAt() {
+    if (this._lookObs) {
+      this.scene.onBeforeRenderObservable.remove(this._lookObs)
+      this._lookObs = null
+    }
+  }
+
+  // ══════════════════════════════════════════════════════════════════════
+  // HELPERS
+  // ══════════════════════════════════════════════════════════════════════
+  _mkButton(name, label, { w, h, bg, color, fontSize, border }) {
+    const btn = GUI.Button.CreateSimpleButton(name, label)
+    btn.width = w; btn.height = h
+    btn.color = color; btn.background = bg
+    btn.fontSize = fontSize
+    btn.cornerRadius = 8
+    btn.thickness = 1
+    btn.paddingBottom = '4px'
+    if (border) btn.color = color
+    btn.isHitTestVisible = true
+    btn.isPointerBlocker = true
+    // Hover feedback
+    btn.onPointerEnterObservable.add(() => {
+      btn._origBg = btn._origBg || btn.background
+      btn.background = C.borderH
+    })
+    btn.onPointerOutObservable.add(() => {
+      btn.background = btn._origBg || bg
+    })
+    if (btn.textBlock) {
+      btn.textBlock.fontWeight = 'bold'
+      btn.textBlock.fontSize = fontSize
+    }
+    return btn
+  }
+
+  _sectionLabel(text) {
+    const lbl = new GUI.TextBlock()
+    lbl.text = text
+    lbl.color = C.dim; lbl.fontSize = 12
+    lbl.height = '18px'; lbl.fontWeight = 'bold'
+    lbl.paddingTop = '8px'
+    lbl.textHorizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_LEFT
+    return lbl
+  }
+
+  _infoRow(key, val) {
+    const row = new GUI.Rectangle()
+    row.height = '28px'; row.width = '100%'
+    row.thickness = 0
+    const keyT = new GUI.TextBlock()
+    keyT.text = key; keyT.color = C.dim; keyT.fontSize = 14
+    keyT.width = '140px'
+    keyT.horizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_LEFT
+    keyT.textHorizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_LEFT
+    row.addControl(keyT)
+    const valT = new GUI.TextBlock()
+    valT.text = val; valT.color = C.text; valT.fontSize = 15
+    valT.left = '150px'
+    valT.horizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_LEFT
+    valT.textHorizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_LEFT
+    row.addControl(valT)
+    return { row, val: valT }
+  }
+
   _setModoVR(id) {
     this._modoAtivo = id
     this.assembly.setModo(id)
-
-    // Atualizar visual dos botões
     const modos = ['visualizacao', 'livre', 'guiado', 'avaliacao']
     modos.forEach(m => {
       const btn = this._panels[`vrbtn_${m}`]
-      if (btn) btn.background = m === id ? '#00c8f0' : '#1A2030'
+      if (!btn) return
+      if (m === id) {
+        btn.background = C.accent
+        btn.color = C.bg
+        btn._origBg = C.accent
+      } else {
+        btn.background = C.surface2
+        btn.color = C.text2
+        btn._origBg = C.surface2
+      }
     })
-
-    // Mostrar/esconder painel de passo
     const showStep = id === 'guiado' || id === 'avaliacao'
     this._panels.stepPlane?.setEnabled(showStep)
-
-    // Sincronizar HTML
-    document.querySelectorAll('.mode-btn').forEach(el => {
-      el.classList.toggle('active', el.dataset.mode === id)
-    })
-  }
-
-  _showHint() {
-    const key  = this.assembly.getNextExpected?.()
-    const meta = this.pumpModel.meta?.[key]
-    if (!meta || !this._panels.stepName) return
-    this._panels.stepName.text = `💡 ${meta.label}`
-    this._panels.stepPlane?.setEnabled(true)
+    // Sincronizar botões desktop (se existirem) — sem acoplamento direto
+    this.onModoChanged?.(id)
   }
 
   _playCinematic() {
@@ -568,6 +723,13 @@ export class VRUIManager {
   _bindCallbacks() {
     this._origStepChange = this.assembly.onStepChange
     this._origComplete   = this.assembly.onComplete
+    this._origProgress   = this.assembly.onProgress
+
+    this.assembly.onProgress = (data) => {
+      this._origProgress?.(data)
+      if (this._panels.progBar) this._panels.progBar.width = data.pct + '%'
+      if (this._panels.progPct) this._panels.progPct.text  = data.pct + '%'
+    }
 
     this.assembly.onStepChange = (key, idx, total) => {
       this._origStepChange?.(key, idx, total)

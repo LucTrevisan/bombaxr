@@ -19,16 +19,16 @@
     }
   },
   "pump_coupling": {
-    "label": "Tampa da Carcaça",
-    "en": "Pump Casing Cover",
-    "desc": "Tampa frontal da bomba centrífuga, também chamada de Tampa de Sucção ou Capa Frontal. Fecha o lado de entrada do fluido e direciona o fluxo para o olho do rotor.",
-    "funcao": "Vedar a entrada da carcaça e guiar o fluido axialmente até o rotor.",
-    "material": "Ferro fundido GG-25",
-    "norma": "NBR 5462 / ISO 9905",
-    "torque": "35 N·m",
-    "ferramenta": "Chave de boca 17mm — parafusos perimetrais",
-    "intervalo": "Inspecionar vedação a cada 4.000h. Verificar desgaste interno a cada revisão geral.",
-    "grupo": "hidraulico"
+    "label": "Cubo da Bomba",
+    "en": "Pump Coupling Hub",
+    "desc": "Cubo do acoplamento lado bomba, fixado à ponta do eixo por chaveta e parafuso de fixação. Transmite torque do motor ao eixo da bomba.",
+    "funcao": "Conectar o eixo da bomba ao elemento elástico do acoplamento, transmitindo torque com alinhamento preciso.",
+    "material": "Aço SAE 1045 temperado",
+    "norma": "ISO 14691 / NBR 16747",
+    "torque": "45 N·m",
+    "ferramenta": "Chave Allen 8mm + chave de boca 19mm",
+    "intervalo": "Verificar alinhamento a cada 4.000h. Inspecionar chaveta e desgaste dos dentes a cada revisão geral.",
+    "grupo": "transmissao"
   },
   "house_bearing": {
     "label": "Mancal",
@@ -222,16 +222,16 @@
     }
   },
   "coupling": {
-    "label": "Tampa da Carcaça",
-    "en": "Pump Casing Cover",
-    "desc": "Tampa frontal da bomba centrífuga, também chamada de Tampa de Sucção ou Capa Frontal. Fecha o lado de entrada do fluido e direciona o fluxo para o olho do rotor.",
-    "funcao": "Vedar a entrada da carcaça e guiar o fluido axialmente até o rotor.",
-    "material": "Ferro fundido GG-25",
-    "norma": "NBR 5462 / ISO 9905",
-    "torque": "35 N·m",
-    "ferramenta": "Chave de boca 17mm — parafusos perimetrais",
-    "intervalo": "Inspecionar vedação a cada 4.000h. Verificar desgaste interno a cada revisão geral.",
-    "grupo": "hidraulico"
+    "label": "Elemento Elástico",
+    "en": "Coupling Spider",
+    "desc": "Elemento elastomérico (spider) em poliuretano que conecta os dois cubos do acoplamento. Absorve desalinhamento angular até 1° e paralelo até 0,5mm.",
+    "funcao": "Amortecer vibrações e compensar desalinhamentos entre eixo do motor e eixo da bomba, protegendo rolamentos e selos.",
+    "material": "Poliuretano 98 Shore A",
+    "norma": "ISO 14691 / DIN 740-2",
+    "torque": "—",
+    "ferramenta": "Sem ferramentas — encaixe por interferência entre os cubos",
+    "intervalo": "Inspecionar desgaste e trincas a cada 4.000h. Substituir a cada 8.000h ou se houver vibração excessiva.",
+    "grupo": "transmissao"
   },
   "bearing_cover": {
     "label": "Tampa do Rolamento",
@@ -367,15 +367,15 @@
     }
   },
   "coupling_2": {
-    "label": "Tampa da Carcaça",
-    "en": "Pump Casing Cover",
-    "desc": "Tampa frontal da bomba centrífuga, também chamada de Tampa de Sucção ou Capa Frontal. Fecha o lado de entrada do fluido e direciona o fluxo para o olho do rotor.",
-    "funcao": "Vedar a entrada da carcaça e guiar o fluido axialmente até o rotor.",
-    "material": "Ferro fundido GG-25",
-    "norma": "NBR 5462 / ISO 9905",
-    "torque": "35 N·m",
-    "ferramenta": "Chave de boca 17mm — parafusos perimetrais",
-    "intervalo": "Inspecionar vedação a cada 4.000h. Verificar desgaste interno a cada revisão geral.",
-    "grupo": "hidraulico"
+    "label": "Cubo do Motor",
+    "en": "Motor Coupling Hub",
+    "desc": "Cubo do acoplamento lado motor, fixado à ponta do eixo do motor por chaveta. Recebe o torque diretamente do rotor elétrico.",
+    "funcao": "Conectar o eixo do motor ao elemento elástico do acoplamento, transmitindo torque à bomba.",
+    "material": "Aço SAE 1045 temperado",
+    "norma": "ISO 14691 / NBR 16747",
+    "torque": "45 N·m",
+    "ferramenta": "Chave Allen 8mm + chave de boca 19mm",
+    "intervalo": "Verificar alinhamento a cada 4.000h. Inspecionar chaveta e desgaste dos dentes a cada revisão geral.",
+    "grupo": "transmissao"
   }
 }

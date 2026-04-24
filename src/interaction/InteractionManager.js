@@ -1,5 +1,9 @@
 /**
- * InteractionManager — Seleção, highlight, drag (desktop + VR)
+ * InteractionManager — Feedback visual (highlight, snap rings) + input desktop
+ *
+ * O input de ponteiro (mouse/touch) é gerenciado aqui e desativado
+ * automaticamente quando o XRManager entra em sessão VR.
+ * O XRManager reutiliza os métodos visuais (select, highlight, snap rings).
  */
 import * as BABYLON from '@babylonjs/core'
 
@@ -17,6 +21,7 @@ export class InteractionManager {
     this._dragOffset     = null
     this._canvas         = null
     this._snapRings      = {}
+    this._desktopInput   = true   // flag de controle — XRManager desliga ao entrar em VR
   }
 
   init() {
@@ -35,6 +40,21 @@ export class InteractionManager {
 
     this._buildSnapRings()
     this._setupEvents()
+  }
+
+  // ── Controle de input desktop ────────────────────────────────────────
+  enableDesktopInput() {
+    this._desktopInput = true
+  }
+
+  disableDesktopInput() {
+    this._desktopInput = false
+    // Cancelar drag em andamento
+    if (this._dragging) {
+      this._dragging = false
+      this._dragPlane.setEnabled(false)
+      this._dragPlane.isPickable = false
+    }
   }
 
   _buildSnapRings() {
@@ -77,6 +97,7 @@ export class InteractionManager {
   }
 
   _onMove() {
+    if (!this._desktopInput) return
     if (this._dragging && this.selectedKey) {
       const pick = this.scene.pick(
         this.scene.pointerX, this.scene.pointerY,
@@ -110,9 +131,7 @@ export class InteractionManager {
   }
 
   _onDown() {
-    // Em VR o XRManager trata seu próprio raycast + drag; evitar conflito
-    if (window._app?.xr?.inXR) return
-
+    if (!this._desktopInput) return
     const pick = this.scene.pick(
       this.scene.pointerX, this.scene.pointerY,
       m => m.isPickable && m.metadata?.partKey
@@ -146,9 +165,7 @@ export class InteractionManager {
   }
 
   _onUp() {
-    // Em VR o snap é feito pelo XRManager
-    if (window._app?.xr?.inXR) return
-
+    if (!this._desktopInput) return
     if (this._dragging && this.selectedKey) {
       const snapped = this.assemblyManager.trySnap(this.selectedKey)
       if (snapped) {

@@ -107,6 +107,13 @@ async function init() {
     const vrUI = new VRUIManager(sceneManager.scene, assembly, pumpModel)
     vrUI.init()
 
+    // Sincronizar botões desktop quando o modo muda via painel VR
+    vrUI.onModoChanged = (id) => {
+      document.querySelectorAll('.mode-btn').forEach(el => {
+        el.classList.toggle('active', el.dataset.mode === id)
+      })
+    }
+
     setStatus('Configurando WebXR...');               setProgress(74)
     const xr = new XRManager(sceneManager.scene, interaction, assembly, pumpModel)
     xr.vrUI = vrUI   // injetar antes de init para garantir callbacks funcionarem

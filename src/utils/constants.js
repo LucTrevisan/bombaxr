@@ -17,13 +17,15 @@ export const MONTAGEM_SEQ = [
   'bearing_cover_2',
   'pump_coupling',
   'coupling',
+  'coupling_2',
   'pump_protection',
 ]
 
 export const DESMONTAGEM_SEQ = [...MONTAGEM_SEQ].reverse()
 
 // Distância de snap automático (metros)
-export const SNAP_DIST = 0.30  // aumentado para escala 2x do modelo
+export const SNAP_DIST    = 0.30  // desktop — precisão de mouse
+export const SNAP_DIST_XR = 0.50  // VR controllers / hand tracking — tolerância maior
 
 // Grupos de componentes
 export const GRUPOS = {

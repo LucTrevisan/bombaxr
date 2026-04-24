@@ -197,6 +197,8 @@ export class PumpModel {
     const cinza  = pbr('m_cinza',  [0.40, 0.40, 0.43], 0.8, 0.3)
     const preto  = pbr('m_preto',  [0.12, 0.12, 0.14], 0.7, 0.5)
     const vermelho = pbr('m_verm', [0.55, 0.08, 0.08], 0.5, 0.5)
+    const laranja = pbr('m_laranja', [0.85, 0.40, 0.05], 0.7, 0.35)
+    const verde  = pbr('m_verde',  [0.046, 0.302, 0.10], 0.5, 0.5)
 
     const add = (name, mesh, mat, pos, rotZ=0) => {
       mesh.parent   = r
@@ -213,7 +215,7 @@ export class PumpModel {
 
     // Carcaça
     const carc = BABYLON.MeshBuilder.CreateCylinder('pump_casing', {diameter:0.55,height:0.30,tessellation:48}, s)
-    add('pump_casing', carc, azul, [-0.35,0,0], Math.PI/2)
+    add('pump_casing', carc, verde, [-0.35,0,0], Math.PI/2)
 
     // Rotor
     const rotorN = new BABYLON.TransformNode('pump_impeller', s)
@@ -269,15 +271,16 @@ export class PumpModel {
     add('pump_protection', prot, pbr('m_prot',[0.08,0.16,0.44],0.6,0.45), [0.42,0.12,0], Math.PI/2)
     prot.alpha = 0.7
 
-    // Acoplamento
-    const acpN = new BABYLON.TransformNode('coupling', s)
-    acpN.parent = r; acpN.position.set(0.42,0,0); acpN.rotation.z = Math.PI/2
-    const a1 = BABYLON.MeshBuilder.CreateCylinder('acp1',{diameter:0.14,height:0.07,tessellation:6},s)
-    a1.parent=acpN; a1.position.z=-0.04; a1.material=preto
-    const a2 = BABYLON.MeshBuilder.CreateCylinder('acp2',{diameter:0.14,height:0.07,tessellation:6},s)
-    a2.parent=acpN; a2.position.z=0.04; a2.material=vermelho
-    this.parts['coupling']      = acpN
+    // Acoplamento — 3 peças: cubo bomba (laranja), elemento elástico (preto), cubo motor (laranja)
+    const a1 = BABYLON.MeshBuilder.CreateCylinder('acp_cubo_bomba',{diameter:0.14,height:0.07,tessellation:6},s)
+    a1.parent=r; a1.position.set(0.38,0,0); a1.rotation.z=Math.PI/2; a1.material=laranja
+    const aEl = BABYLON.MeshBuilder.CreateCylinder('acp_elastico',{diameter:0.12,height:0.04,tessellation:6},s)
+    aEl.parent=r; aEl.position.set(0.42,0,0); aEl.rotation.z=Math.PI/2; aEl.material=preto
+    const a2 = BABYLON.MeshBuilder.CreateCylinder('acp_cubo_motor',{diameter:0.14,height:0.07,tessellation:6},s)
+    a2.parent=r; a2.position.set(0.46,0,0); a2.rotation.z=Math.PI/2; a2.material=laranja
     this.parts['pump_coupling'] = a1
+    this.parts['coupling']      = aEl
+    this.parts['coupling_2']    = a2
 
     // Motor
     const motN = new BABYLON.TransformNode('motor_body', s)
@@ -341,14 +344,16 @@ export class PumpModel {
   // ── Sobrescrever cores específicas mantendo o resto original ────────────
   _applyColorOverrides() {
     // Aplicar cor diretamente nos meshes pelo nome — mais confiável que pela chave
-    const verde = new BABYLON.Color3(0.046, 0.302, 0.10)
-    const azul  = new BABYLON.Color3(0.046, 0.302, 1.0)
+    const verde   = new BABYLON.Color3(0.046, 0.302, 0.10)
+    const azul    = new BABYLON.Color3(0.046, 0.302, 1.0)
+    const laranja = new BABYLON.Color3(0.85, 0.40, 0.05)
+    const preto   = new BABYLON.Color3(0.12, 0.12, 0.14)
     const targetColors = {
-      'Pump_Casing':    verde,  // carcaça → verde
-      'moteur_wftp2':   azul,   // motor → azul
-      'Drive_Coupling': verde,  // acoplamento drive → verde
-      'Pump_Coupling':  verde,  // acoplamento bomba (ciano) → verde
-      'Sleeve_Hub':     verde,  // manga → verde
+      'Pump_Casing':    verde,    // carcaça → verde
+      'moteur_wftp2':   azul,     // motor → azul
+      'Drive_Coupling': laranja,  // cubo motor → laranja
+      'Pump_Coupling':  laranja,  // cubo bomba → laranja
+      'Sleeve_Hub':     laranja,  // manga cubo → laranja
     }
 
     this.scene.meshes.forEach(m => {
