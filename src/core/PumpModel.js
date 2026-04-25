@@ -48,6 +48,8 @@ export class PumpModel {
       }
       // Escala automática — ajusta para ~3.0m de comprimento (2x da escala anterior)
       this._autoScale(result.meshes, 3.0)
+      // Posicionar acima do chão (y=0 = floor VR) para não atravessar o piso
+      this._positionAboveFloor(result.meshes)
     } catch (e) {
       console.warn('⚠️ bomba.glb não encontrado — modelo procedural ativo')
       this._buildProcedural()
@@ -410,6 +412,25 @@ export class PumpModel {
     this.rootNode.scaling.setAll(scale)
 
     console.log(`✅ Escala automática: ${scale.toFixed(3)}x (modelo: ${maxDim.toFixed(3)}m → ${targetSizeMeters}m)`)
+  }
+
+  // Erguer rootNode para que o ponto mais baixo do modelo fique em y=0 (chão VR).
+  // Roda DEPOIS de _autoScale para usar as posições world já escaladas.
+  _positionAboveFloor(meshes) {
+    this.rootNode.computeWorldMatrix(true)
+    let minY = Infinity
+    meshes.forEach(m => {
+      if (!m.getBoundingInfo) return
+      try {
+        m.computeWorldMatrix(true)
+        const y = m.getBoundingInfo().boundingBox.minimumWorld.y
+        if (y < minY) minY = y
+      } catch {}
+    })
+    if (isFinite(minY) && minY < 0) {
+      this.rootNode.position.y -= minY + 0.01   // 1cm acima do chão
+      console.log(`Bomba erguida ${(-minY + 0.01).toFixed(3)}m para ficar acima do floor`)
+    }
   }
 
   _storeOrigins() {

@@ -147,10 +147,10 @@ async function init() {
       if (xr.inXR) vrUI.showPartInfoVR(key)
     }
 
-    // Snap com feedback completo
+    // Snap com feedback completo — preserva snapDist para SNAP_DIST_XR funcionar
     const origSnap = assembly.trySnap.bind(assembly)
-    assembly.trySnap = (key) => {
-      const ok = origSnap(key)
+    assembly.trySnap = (key, snapDist) => {
+      const ok = origSnap(key, snapDist)
       if (ok) { interaction.flashSnap(key); audio.playSnap() }
       else if (assembly.modo !== 'visualizacao') { interaction.flashErro(key); audio.playError() }
       return ok

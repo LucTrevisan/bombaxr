@@ -63,7 +63,8 @@ export class SceneManager {
     // ── Iluminação ───────────────────────────────────────────────────────────
     this._setupLighting()
 
-    // ── Grade de chão ────────────────────────────────────────────────────────
+    // ── Chão de referência — essencial para percepção de escala no VR ────────
+    this._setupGround()
 
     // ── Post-processing ──────────────────────────────────────────────────────
     this._setupPostProcessing()
@@ -74,34 +75,36 @@ export class SceneManager {
   }
 
   _setupGround() {
-    // Chão industrial simples — sempre visível, recebe sombra
+    // Chão industrial — y=0 = nível do floor em WebXR local-floor.
+    // Essencial para percepção de escala e profundidade no VR.
     const ground = BABYLON.MeshBuilder.CreateGround('industrial_ground', {
-      width: 10, height: 10, subdivisions: 4
+      width: 16, height: 16, subdivisions: 4
     }, this.scene)
 
     const mat = new BABYLON.StandardMaterial('ground_mat', this.scene)
-    mat.diffuseColor  = new BABYLON.Color3(0.28, 0.30, 0.33)  // cinza industrial
+    mat.diffuseColor  = new BABYLON.Color3(0.22, 0.24, 0.27)
     mat.specularColor = new BABYLON.Color3(0.05, 0.05, 0.05)
     mat.roughness     = 0.9
 
     ground.material       = mat
     ground.receiveShadows = true
     ground.isPickable     = false
-    ground.position.y     = -0.42  // abaixo da bomba
+    ground.position.y     = 0   // floor level VR (local-floor y=0)
 
-    // Grade sutil — linhas no chão para senso de escala
+    // Grade 1m x 1m — referência de escala métrica real
     const linhas = []
-    for (let i = -5; i <= 5; i++) {
-      linhas.push([new BABYLON.Vector3(i, -0.419, -5), new BABYLON.Vector3(i, -0.419, 5)])
-      linhas.push([new BABYLON.Vector3(-5, -0.419, i), new BABYLON.Vector3(5, -0.419, i)])
+    const G = 0.001  // ligeiramente acima do ground para evitar z-fighting
+    for (let i = -8; i <= 8; i++) {
+      linhas.push([new BABYLON.Vector3(i, G, -8), new BABYLON.Vector3(i, G, 8)])
+      linhas.push([new BABYLON.Vector3(-8, G, i), new BABYLON.Vector3(8, G, i)])
     }
     const grade = BABYLON.MeshBuilder.CreateLineSystem('grade_chao', { lines: linhas }, this.scene)
     grade.color     = new BABYLON.Color3(0.35, 0.38, 0.42)
-    grade.alpha     = 0.25
+    grade.alpha     = 0.20
     grade.isPickable = false
 
     this._ground = ground
-    console.log('✅ Chão industrial criado')
+    console.log('Chao industrial 16x16m criado (grade 1m)')
   }
 
   async _setup360() {
@@ -279,7 +282,7 @@ export class SceneManager {
     hemi.intensity   = 0.85
     hemi.diffuse     = new BABYLON.Color3(1.0, 1.0, 1.0)
     hemi.specular    = new BABYLON.Color3(0.3, 0.3, 0.3)
-    hemi.groundColor = new BABYLON.Color3(0.5, 0.5, 0.5)
+    hemi.groundColor = new BABYLON.Color3(0.55, 0.55, 0.55)  // light de baixo mais forte → menos sombras duras → profundidade VR
 
     // Direcional principal — branca, ângulo de estúdio
     const dir = new BABYLON.DirectionalLight('dir', new BABYLON.Vector3(-1,-2,-0.5), this.scene)

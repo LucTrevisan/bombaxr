@@ -616,10 +616,10 @@ export class XRManager {
       this._toastPlane.position = cam.position.add(fwd.scale(0.9))
         .addInPlaceFromFloats(0, -0.25, 0)
 
-      // Look-at manual (evita billboardMode que interfere com picking)
+      // Face frontal do plano (-Z) aponta para a câmera → +PI
       const dx = cam.position.x - this._toastPlane.position.x
       const dz = cam.position.z - this._toastPlane.position.z
-      this._toastPlane.rotation.y = Math.atan2(dx, dz)
+      this._toastPlane.rotation.y = Math.atan2(dx, dz) + Math.PI
     }
 
     clearTimeout(this._toastTimer)

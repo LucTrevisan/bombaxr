@@ -592,7 +592,10 @@ export class VRUIManager {
 
   _startLookAt() {
     this._stopLookAt()
-    // Orientar painéis para a câmera sem billboardMode (melhora o picking)
+    // Orientar a FACE FRONTAL (-Z) dos planos para a câmera.
+    // CreatePlane tem normal em -Z, então precisamos de +PI para apontar
+    // a face correta (com a textura GUI legível) para o usuário.
+    // Sem o +PI: face traseira fica visível → texto espelhado, cliques invertidos.
     this._lookObs = this.scene.onBeforeRenderObservable.add(() => {
       const cam = this._xrCamera || this.scene.activeCamera
       if (!cam) return
@@ -600,10 +603,9 @@ export class VRUIManager {
       for (const name of ['mainPlane', 'infoPlane', 'stepPlane', 'toolbarPlane']) {
         const p = this._panels[name]
         if (!p || !p.isEnabled()) continue
-        // Virar o plano para a câmera no eixo Y
         const dx = camPos.x - p.position.x
         const dz = camPos.z - p.position.z
-        p.rotation.y = Math.atan2(dx, dz)
+        p.rotation.y = Math.atan2(dx, dz) + Math.PI
       }
     })
   }
@@ -629,6 +631,7 @@ export class VRUIManager {
     if (border) btn.color = color
     btn.isHitTestVisible = true
     btn.isPointerBlocker = true
+
     // Hover feedback
     btn.onPointerEnterObservable.add(() => {
       btn._origBg = btn._origBg || btn.background
@@ -637,6 +640,18 @@ export class VRUIManager {
     btn.onPointerOutObservable.add(() => {
       btn.background = btn._origBg || bg
     })
+
+    // Click feedback — flash visual + log (facilita debug no Quest)
+    btn.onPointerDownObservable.add(() => {
+      btn.background = C.accent
+      btn.scaleX = 0.95; btn.scaleY = 0.95
+      console.log('[VR UI] Clique:', label)
+    })
+    btn.onPointerUpObservable.add(() => {
+      btn.background = btn._origBg || bg
+      btn.scaleX = 1.0; btn.scaleY = 1.0
+    })
+
     if (btn.textBlock) {
       btn.textBlock.fontWeight = 'bold'
       btn.textBlock.fontSize = fontSize
