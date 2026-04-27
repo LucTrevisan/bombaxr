@@ -46,8 +46,8 @@ export class PumpModel {
       if (this._unmapped.length) {
         console.warn('⚠️ Não mapeados:', this._unmapped.length, 'meshes')
       }
-      // Escala automática — ajusta para ~3.0m de comprimento (2x da escala anterior)
-      this._autoScale(result.meshes, 3.0)
+      // Escala automática — ajusta para ~5.0m (tamanho confortável para VR)
+      this._autoScale(result.meshes, 5.0)
       // Posicionar acima do chão (y=0 = floor VR) para não atravessar o piso
       this._positionAboveFloor(result.meshes)
     } catch (e) {

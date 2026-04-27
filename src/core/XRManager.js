@@ -127,7 +127,11 @@ export class XRManager {
     this.xrHelper.baseExperience.onStateChangedObservable.add(state => {
       if (state === BABYLON.WebXRState.IN_XR) {
         this.inXR = true
-        this.interaction.disableDesktopInput()
+        // Desativar input desktop apenas em headsets reais — no Chrome com
+        // emulador WebXR o mouse continua sendo o meio de interação
+        if (!this._isDesktopEmulator()) {
+          this.interaction.disableDesktopInput()
+        }
         document.body.classList.add('in-vr')
         this.vrUI?.onEnterVR(this.xrHelper.baseExperience.camera)
         console.log('Entrou no VR')
@@ -139,6 +143,13 @@ export class XRManager {
         this.vrUI?.onExitVR()
       }
     })
+  }
+
+  /** Detecta se estamos num browser desktop com emulador (não um headset real) */
+  _isDesktopEmulator() {
+    const ua = navigator.userAgent.toLowerCase()
+    // Browsers de headsets reais identificam-se no UA
+    return !/quest|oculus|pico|vive|wolvic/i.test(ua)
   }
 
   // ══════════════════════════════════════════════════════════════════════

@@ -475,11 +475,11 @@ export class VRUIManager {
   // ══════════════════════════════════════════════════════════════════════
   _buildToolbar() {
     const plane = BABYLON.MeshBuilder.CreatePlane('vr_toolbar',
-      { width: 0.50, height: 0.10 }, this.scene)
+      { width: 0.60, height: 0.10 }, this.scene)
     plane.isPickable = true
     plane.renderingGroupId = 1
 
-    const tex = GUI.AdvancedDynamicTexture.CreateForMesh(plane, 500, 100)
+    const tex = GUI.AdvancedDynamicTexture.CreateForMesh(plane, 600, 100)
 
     const bg = new GUI.Rectangle()
     bg.background = C.glass; bg.cornerRadius = 10
@@ -497,6 +497,7 @@ export class VRUIManager {
       { label: '↺',  tip: 'Reset',      fn: () => this.assembly.reset()         },
       { label: '🎬', tip: 'Cinemática', fn: () => this._playCinematic()          },
       { label: '💧', tip: 'Fluxo',      fn: () => this._toggleFlow()             },
+      { label: '🔄', tip: 'Giro 360°',  fn: () => this._playShowcase()           },
     ]
 
     tools.forEach(({ label, fn }) => {
@@ -721,6 +722,12 @@ export class VRUIManager {
     const anim = window._app?.xr?.anim || window._app?.anim
     if (!anim) return
     anim._flowParticles ? anim.stopFlow() : anim.startFlow()
+  }
+
+  _playShowcase() {
+    const anim = window._app?.xr?.anim || window._app?.anim
+    if (!anim || anim.isPlaying) return
+    anim.playShowcase()
   }
 
   _showAllVR() {
